@@ -6,7 +6,7 @@
 
 暗い場所に入ると徐々に画面を明るくし、明るい場所に戻ると元の明るさに復帰するFabricクライアントMod。
 
-> **Status:** Experimental v1.1.1. Build tests and GLSL validation run on GitHub Actions. Visual results, shader-pack compatibility, and game startup have not been manually verified. This is **not a stable release**.
+> **Status:** Experimental v1.1.2. Build tests and GLSL validation run on GitHub Actions. Visual results, shader-pack compatibility, and game startup have not been manually verified. This is **not a stable release**.
 
 ## Crash fix in v1.1.1 / クラッシュ修正
 
@@ -22,6 +22,27 @@ verify the complete render pipeline in-game.
 v1.1.0以前で暗視ポーション効果がない場合に発生したNullPointerExceptionを修正。
 実際のポーション効果がない場合はバニラの暗視強度計算を呼ばず、
 AutoLuma自身の補正値を返します。既存のバニラ暗視効果も保持します。
+
+## v1.1.2 Vulkan / Vitrail safety guard
+
+A reported **Windows native crash** (`EXCEPTION_ACCESS_VIOLATION 0xc0000005`)
+occurred while changing from Auto to Post-effect mode on Minecraft 26.3 with
+Vitrail 0.13.0-beta and the experimental Vulkan backend enabled. The Java log
+alone **does not identify the failing native module**; `hs_err_pid*.log` is
+required to diagnose the exact driver or renderer stack.
+
+**Precautionary workaround:** when Vitrail is installed, AutoLuma skips
+Post-effect in the mode selector, and persisted Post-effect settings fall
+back to Night Vision. Post effects remain available without Vitrail.
+This avoids requesting AutoLuma's unverified custom fullscreen Vulkan pass,
+but **does not establish that Vitrail caused the crash or guarantee safety
+from unrelated native crashes**. To investigate a crash, attach the
+JVM `hs_err_pid*.log` along with the launcher log.
+
+Vitrailの読み込みを検出すると、未検証の画面ポストエフェクトを選択から除外し、
+以前保存した設定も暗視方式で代替します。実際の原因がVitrailと確定したわけ
+ではありません。切り替え時に依然としてクラッシュする場合は、ランチャーログ
+に加えて `hs_err_pid*.log` を添付してください。
 
 ## Features / 機能
 
@@ -39,7 +60,7 @@ AutoLuma自身の補正値を返します。既存のバニラ暗視効果も保
 | Mode | What it does | When to try |
 | --- | --- | --- |
 | **Auto (default)** | Night Vision in vanilla; post-effect when Iris shaders are active | Recommended first; changes renderer according to the active shader pack |
-| Post-effect | Full-screen contrast-preserving dark lift, applied between world rendering and HUD | Primary rendering backend for 26.3 |
+| Post-effect | Full-screen contrast-preserving dark lift, applied between world rendering and HUD | Experimental; intentionally disabled while Vitrail is installed |
 | Night vision | Client-only vanilla night-vision lightmap branch (no potion status) | Fallback for shader packs that support vanilla night vision |
 | Gamma | Adds transient brightness to the vanilla lightmap | Low overhead, suitable for vanilla lighting but may have no effect with shaders |
 
@@ -97,7 +118,7 @@ Requires JDK 25 and Gradle 9.7.1:
 gradle clean build
 ```
 
-On Windows, run `./build.ps1` in PowerShell. This fetches official Gradle and validates its SHA-256. The result is `build/libs/autoluma-1.1.1.jar`.
+On Windows, run `./build.ps1` in PowerShell. This fetches official Gradle and validates its SHA-256. The result is `build/libs/autoluma-1.1.2.jar`.
 
 The GitHub Actions workflow additionally validates the fragment shader with `glslangValidator` and executes unit tests, including checks of the twelve screen-effect definitions. No release is automatically published.
 

@@ -1,6 +1,7 @@
 package io.github.mintymc.autoluma;
 
 import net.fabricmc.api.ClientModInitializer;
+import net.fabricmc.loader.api.FabricLoader;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.BlockPos;
@@ -8,6 +9,7 @@ import net.minecraft.world.level.LightLayer;
 
 /** Local controller: sunlight detection -> smooth intensity -> render backend. */
 public final class AutoLumaClient implements ClientModInitializer {
+    private static final boolean VITRAIL_LOADED = FabricLoader.getInstance().isModLoaded("vitrail");
     private static AutoLumaConfig config;
     private static float intensity;
     private static int effectiveLight = 15;
@@ -32,6 +34,7 @@ public final class AutoLumaClient implements ClientModInitializer {
     public static int sampledSky() { return skyLight; }
     public static int sampledSkyDarken() { return skyDarken; }
     public static boolean shadersActive() { return irisActive; }
+    public static boolean postEffectsBlocked() { return VITRAIL_LOADED; }
     public static boolean isDark() { return effectiveLight <= config.darkThreshold; }
     public static int gammaHookCalls() { return gammaHookCalls; }
     public static int nightVisionHookCalls() { return nightVisionHookCalls; }
@@ -41,15 +44,8 @@ public final class AutoLumaClient implements ClientModInitializer {
     public static void markPostRequest() { postRequestCalls++; }
 
     public static AutoLumaConfig.RenderMode effectiveMode() {
-        if (config == null) return AutoLumaConfig.RenderMode.POST_EFFECT;
-        // The default backend adapts to the current renderer. Vanilla night vision
-        // works in truly unlit caves without an extra full-screen GPU pass;
-        // active Iris shader packs get a post effect after world rendering.
-        if (config.renderMode == AutoLumaConfig.RenderMode.AUTO) {
-            return irisActive ? AutoLumaConfig.RenderMode.POST_EFFECT
-                              : AutoLumaConfig.RenderMode.NIGHT_VISION;
-        }
-        return config.renderMode;
+        if (config == null) return AutoLumaConfig.RenderMode.NIGHT_VISION;
+        return AutoLumaRenderPolicy.select(config.renderMode, irisActive, VITRAIL_LOADED);
     }
 
     public static float bonusGamma() {

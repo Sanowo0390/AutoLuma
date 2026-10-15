@@ -5,6 +5,22 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class AutoLumaLightTest {
     @Test
+    void renderModeSelectionGuardsVitrailPostProcessing() {
+        assertEquals(AutoLumaConfig.RenderMode.NIGHT_VISION,
+            AutoLumaRenderPolicy.select(AutoLumaConfig.RenderMode.POST_EFFECT, false, true));
+        assertEquals(AutoLumaConfig.RenderMode.NIGHT_VISION,
+            AutoLumaRenderPolicy.select(AutoLumaConfig.RenderMode.AUTO, true, true));
+        assertEquals(AutoLumaConfig.RenderMode.NIGHT_VISION,
+            AutoLumaRenderPolicy.select(AutoLumaConfig.RenderMode.AUTO, false, false));
+        assertEquals(AutoLumaConfig.RenderMode.POST_EFFECT,
+            AutoLumaRenderPolicy.select(AutoLumaConfig.RenderMode.AUTO, true, false));
+        assertEquals(AutoLumaConfig.RenderMode.POST_EFFECT,
+            AutoLumaRenderPolicy.select(AutoLumaConfig.RenderMode.POST_EFFECT, false, false));
+        assertEquals(AutoLumaConfig.RenderMode.GAMMA,
+            AutoLumaRenderPolicy.select(AutoLumaConfig.RenderMode.GAMMA, false, true));
+    }
+
+    @Test
     void fullDaylightNoAdjustment() {
         assertEquals(15, AutoLumaLight.effectiveLight(0, 15, 0));
         assertEquals(0.0f, AutoLumaLight.darknessStrength(15, 11));

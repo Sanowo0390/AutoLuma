@@ -16,5 +16,6 @@
   "autoluma.diagnostic": "Light %s | Block %s | Sky %s | Darken %s",
   "autoluma.diagnostic_strength": "Intensity %s%% | Post-level %s/12 | Iris shaders %s",
   "autoluma.diagnostic_render": "Render hooks: Gamma %s | NV %s | Post queued %s",
-  "autoluma.done": "Save and return"
+  "autoluma.done": "Save and return",
+  "autoluma.mode.post_effect_blocked": "Post-effect blocked (Vitrail: Night vision fallback)"
 }

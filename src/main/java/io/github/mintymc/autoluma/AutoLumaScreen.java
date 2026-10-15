@@ -41,7 +41,14 @@ public final class AutoLumaScreen extends Screen {
 
         modeButton = addRenderableWidget(Button.builder(modeText(), button -> {
             AutoLumaConfig.RenderMode[] modes = AutoLumaConfig.RenderMode.values();
-            config.renderMode = modes[(config.renderMode.ordinal() + 1) % modes.length];
+            int next = (config.renderMode.ordinal() + 1) % modes.length;
+            // Do not expose the unverified Vulkan post-processing path when
+            // Vitrail is present; it can cause a native driver-level crash.
+            if (AutoLumaClient.postEffectsBlocked()
+                    && modes[next] == AutoLumaConfig.RenderMode.POST_EFFECT) {
+                next = (next + 1) % modes.length;
+            }
+            config.renderMode = modes[next];
             modeButton.setMessage(modeText());
             preview();
         }).bounds(x, controlsY + 46, width, 20).build());
@@ -73,8 +80,11 @@ public final class AutoLumaScreen extends Screen {
     }
 
     private Component modeText() {
-        return Component.translatable("autoluma.render_mode",
-            Component.translatable("autoluma.mode." + config.renderMode.name().toLowerCase(java.util.Locale.ROOT)));
+        String key = (AutoLumaClient.postEffectsBlocked()
+                && config.renderMode == AutoLumaConfig.RenderMode.POST_EFFECT)
+                ? "autoluma.mode.post_effect_blocked"
+                : "autoluma.mode." + config.renderMode.name().toLowerCase(java.util.Locale.ROOT);
+        return Component.translatable("autoluma.render_mode", Component.translatable(key));
     }
 
     private void preview() {
