@@ -1,0 +1,21 @@
+# Build outputs and local caches
+.gradle/
+build/
+run/
+out/
+.gradle-bootstrap/
+.idea/
+.vscode/
+*.iml
+.classpath
+.project
+.settings/
+*.log
+*.jar
+
+# Local configuration and secrets
+config/
+.env
+.env.*
+*.key
+*.pem

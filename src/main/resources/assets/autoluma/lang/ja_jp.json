@@ -1,0 +1,11 @@
+{
+  "autoluma.title": "AutoLuma - 自動明るさ調整",
+  "autoluma.description": "暗い場所で自動的に明るさを上げます（ガンマ補正）。",
+  "autoluma.enabled": "自動調整: %s",
+  "autoluma.on": "オン",
+  "autoluma.off": "オフ",
+  "autoluma.boost": "明るさの増加率: +%s%%",
+  "autoluma.threshold": "暗所判定（光レベル）: %s以下",
+  "autoluma.speed": "移行のなめらかさ: %s tick",
+  "autoluma.done": "保存して戻る"
+}

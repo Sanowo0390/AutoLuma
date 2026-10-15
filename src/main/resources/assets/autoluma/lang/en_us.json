@@ -1,0 +1,11 @@
+{
+  "autoluma.title": "AutoLuma - Automatic Brightness",
+  "autoluma.description": "Boost gamma automatically in dark areas.",
+  "autoluma.enabled": "Automatic brightness: %s",
+  "autoluma.on": "ON",
+  "autoluma.off": "OFF",
+  "autoluma.boost": "Gamma boost: +%s%%",
+  "autoluma.threshold": "Dark if light level is %s or lower",
+  "autoluma.speed": "Transition smoothing: %s ticks",
+  "autoluma.done": "Save and return"
+}

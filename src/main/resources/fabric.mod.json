@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "id": "autoluma",
+  "version": "${version}",
+  "name": "AutoLuma",
+  "description": "Automatically increases gamma in dark areas. Adjustable through Mod Menu.",
+  "authors": ["Sanowo0390"],
+  "contact": {
+    "homepage": "https://github.com/Sanowo0390/AutoLuma",
+    "sources": "https://github.com/Sanowo0390/AutoLuma",
+    "issues": "https://github.com/Sanowo0390/AutoLuma/issues"
+  },
+  "license": "MIT",
+  "environment": "client",
+  "entrypoints": {
+    "client": ["io.github.mintymc.autoluma.AutoLumaClient"],
+    "modmenu": ["io.github.mintymc.autoluma.AutoLumaModMenu"]
+  },
+  "mixins": ["autoluma.mixins.json"],
+  "depends": {
+    "java": ">=25",
+    "minecraft": "26.3",
+    "fabricloader": ">=0.19.5",
+    "fabric-api": "*"
+  },
+  "suggests": {
+    "modmenu": ">=21.0.0"
+  }
+}
