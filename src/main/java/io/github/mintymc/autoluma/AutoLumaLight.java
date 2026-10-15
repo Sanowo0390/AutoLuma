@@ -34,6 +34,10 @@ public final class AutoLumaLight {
         return clamp(Math.round(clamp01(intensity) * 12.0f), 0, 12);
     }
 
+    public static int clampTransitionTicks(int ticks) {
+        return clamp(ticks, 1, 100);
+    }
+
     public static float gammaBonus(float intensity) {
         return 15.0f * clamp01(intensity);
     }

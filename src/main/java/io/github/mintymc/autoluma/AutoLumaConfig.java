@@ -69,7 +69,7 @@ public final class AutoLumaConfig {
     public void clamp() {
         strengthPercent = Math.max(0, Math.min(100, strengthPercent));
         darkThreshold = Math.max(0, Math.min(14, darkThreshold));
-        transitionTicks = Math.max(1, Math.min(100, transitionTicks));
+        transitionTicks = AutoLumaLight.clampTransitionTicks(transitionTicks);
         if (renderMode == null) renderMode = RenderMode.AUTO;
     }
 }

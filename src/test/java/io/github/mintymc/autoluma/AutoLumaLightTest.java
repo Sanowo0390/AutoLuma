@@ -22,13 +22,9 @@ class AutoLumaLightTest {
 
     @Test
     void transitionTicksAccept100() {
-        var config = new AutoLumaConfig();
-        config.transitionTicks = 100;
-        config.clamp();
-        assertEquals(100, config.transitionTicks);
-        config.transitionTicks = 101;
-        config.clamp();
-        assertEquals(100, config.transitionTicks);
+        assertEquals(100, AutoLumaLight.clampTransitionTicks(100));
+        assertEquals(100, AutoLumaLight.clampTransitionTicks(101));
+        assertEquals(1, AutoLumaLight.clampTransitionTicks(0));
         assertEquals(0.01f, AutoLumaLight.smooth(0.0f, 1.0f, 100), 0.00001f);
     }
 
