@@ -1,11 +1,14 @@
 {
   "autoluma.title": "AutoLuma - Automatic Brightness",
-  "autoluma.description": "Boost gamma automatically in dark areas.",
-  "autoluma.enabled": "Automatic brightness: %s",
+  "autoluma.description": "Automatically adjusts gamma based on local light.",
+  "autoluma.enabled": "Auto brightness: %s",
+  "autoluma.force": "Always apply (test mode): %s",
   "autoluma.on": "ON",
   "autoluma.off": "OFF",
   "autoluma.boost": "Gamma boost: +%s%%",
-  "autoluma.threshold": "Dark if light level is %s or lower",
+  "autoluma.threshold": "Darkness threshold: light level %s or less",
   "autoluma.speed": "Transition smoothing: %s ticks",
+  "autoluma.diagnostic": "Light: %s / Block: %s / Sky: %s / Sky darken: %s",
+  "autoluma.diagnostic_boost": "Applied bonus: +%s%% / Dark detected: %s",
   "autoluma.done": "Save and return"
 }

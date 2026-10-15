@@ -4,16 +4,19 @@ import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.BlockPos;
+import net.minecraft.world.level.LightLayer;
 
 /**
- * Client-only tick logic; never modifies the player's saved vanilla gamma option.
- * Rendering gets an extra gamma value through LightmapExtractorMixin.
+ * Client-only brightness controller. Does not mutate Minecraft's gamma option.
  */
 public final class AutoLumaClient implements ClientModInitializer {
     private static AutoLumaConfig config;
     private static boolean dark;
     private static float currentBonus;
     private static int sampledLight = 15;
+    private static int sampledBlock = 15;
+    private static int sampledSky = 15;
+    private static int sampledSkyDarken;
 
     @Override
     public void onInitializeClient() {
@@ -25,6 +28,7 @@ public final class AutoLumaClient implements ClientModInitializer {
         return config;
     }
 
+    /** Extra gamma to add to the extracted lightmap brightness. */
     public static float bonusGamma() {
         return currentBonus;
     }
@@ -33,11 +37,30 @@ public final class AutoLumaClient implements ClientModInitializer {
         return sampledLight;
     }
 
+    public static int sampledBlock() {
+        return sampledBlock;
+    }
+
+    public static int sampledSky() {
+        return sampledSky;
+    }
+
+    public static int sampledSkyDarken() {
+        return sampledSkyDarken;
+    }
+
+    public static boolean isDark() {
+        return dark;
+    }
+
     private static void tick(Minecraft client) {
         if (client.level == null || client.player == null) {
             dark = false;
             currentBonus = 0.0f;
             sampledLight = 15;
+            sampledSky = 15;
+            sampledBlock = 15;
+            sampledSkyDarken = 0;
             return;
         }
         if (client.isPaused()) {
@@ -46,24 +69,26 @@ public final class AutoLumaClient implements ClientModInitializer {
 
         BlockPos feet = client.player.blockPosition();
         BlockPos eyes = BlockPos.containing(client.player.getEyePosition());
-        sampledLight = Math.max(client.level.getMaxLocalRawBrightness(feet),
-                                client.level.getMaxLocalRawBrightness(eyes));
 
-        int threshold = config.darkThreshold;
-        if (!config.enabled) {
-            dark = false;
-        } else if (dark) {
-            // Hysteresis suppresses rapid switching around the threshold.
-            if (sampledLight >= Math.min(15, threshold + 2)) {
-                dark = false;
-            }
-        } else if (sampledLight <= threshold) {
-            dark = true;
-        }
+        // Separate SKY and BLOCK sampling makes night-time exposure explicit.
+        // Sampling both feet and eyes keeps the mod from overreacting to a dark
+        // block just below the head in otherwise bright surroundings.
+        sampledBlock = Math.max(
+                client.level.getBrightness(LightLayer.BLOCK, feet),
+                client.level.getBrightness(LightLayer.BLOCK, eyes));
+        sampledSky = Math.max(
+                client.level.getBrightness(LightLayer.SKY, feet),
+                client.level.getBrightness(LightLayer.SKY, eyes));
+        sampledSkyDarken = client.level.getSkyDarken();
+        sampledLight = AutoLumaLight.effectiveLight(sampledBlock, sampledSky, sampledSkyDarken);
 
-        float target = dark && config.enabled ? config.boostPercent / 100.0f : 0.0f;
-        int ticks = Math.max(1, config.transitionTicks);
-        currentBonus += (target - currentBonus) / ticks;
+        dark = AutoLumaLight.isDark(sampledLight, config.darkThreshold, dark);
+        float target = (config.enabled && (config.forceBoost || dark))
+                ? config.boostPercent / 100.0f : 0.0f;
+
+        // Smoothed transitions; resetting to 0 restores the exact vanilla render
+        // value automatically. The user-adjusted brightness slider remains intact.
+        currentBonus += (target - currentBonus) / Math.max(1, config.transitionTicks);
         if (Math.abs(target - currentBonus) < 0.001f) {
             currentBonus = target;
         }

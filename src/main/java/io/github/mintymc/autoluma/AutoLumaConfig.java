@@ -15,8 +15,9 @@ public final class AutoLumaConfig {
     private static final Path FILE = FabricLoader.getInstance().getConfigDir().resolve("autoluma.json");
 
     public boolean enabled = true;
+    public boolean forceBoost = false; // diagnostic fallback for renderer/shader checks
     public int boostPercent = 500;
-    public int darkThreshold = 7;
+    public int darkThreshold = 11;
     public int transitionTicks = 8;
 
     public static AutoLumaConfig load() {
@@ -50,7 +51,7 @@ public final class AutoLumaConfig {
 
     public void clamp() {
         boostPercent = Math.max(0, Math.min(1500, boostPercent));
-        darkThreshold = Math.max(0, Math.min(13, darkThreshold));
+        darkThreshold = Math.max(0, Math.min(14, darkThreshold));
         transitionTicks = Math.max(1, Math.min(60, transitionTicks));
     }
 }

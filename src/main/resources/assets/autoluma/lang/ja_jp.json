@@ -1,11 +1,14 @@
 {
   "autoluma.title": "AutoLuma - 自動明るさ調整",
-  "autoluma.description": "暗い場所で自動的に明るさを上げます（ガンマ補正）。",
+  "autoluma.description": "周囲の光量に応じて自動で明るさを調整します。",
   "autoluma.enabled": "自動調整: %s",
+  "autoluma.force": "常時適用（テスト用）: %s",
   "autoluma.on": "オン",
   "autoluma.off": "オフ",
   "autoluma.boost": "明るさの増加率: +%s%%",
-  "autoluma.threshold": "暗所判定（光レベル）: %s以下",
+  "autoluma.threshold": "暗所判定: 光レベル%s以下",
   "autoluma.speed": "移行のなめらかさ: %s tick",
+  "autoluma.diagnostic": "現在の光: %s / ブロック: %s / 空: %s / 空の減衰: %s",
+  "autoluma.diagnostic_boost": "現在の補正: +%s%% / 暗所判定: %s",
   "autoluma.done": "保存して戻る"
 }
