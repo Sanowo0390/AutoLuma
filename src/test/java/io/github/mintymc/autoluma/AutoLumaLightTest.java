@@ -5,44 +5,74 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class AutoLumaLightTest {
     @Test
-    void nightVisionStrengthTracksPercentSlider() {
-        assertEquals(0.0f, AutoLumaLight.nightVisionStrength(0.0f));
-        assertEquals(1.0f / 3.0f, AutoLumaLight.nightVisionStrength(5.0f), 0.00001f);
-        assertEquals(1.0f, AutoLumaLight.nightVisionStrength(15.0f));
-        assertEquals(1.0f, AutoLumaLight.nightVisionStrength(20.0f));
-    }
-
-    @Test
-    void nightSkyIsNotTreatedAsFullDaylight() {
-        assertEquals(4, AutoLumaLight.effectiveLight(0, 15, 11));
-    }
-
-    @Test
-    void exposedDaylightIsBright() {
+    void fullDaylightNoAdjustment() {
         assertEquals(15, AutoLumaLight.effectiveLight(0, 15, 0));
+        assertEquals(0.0f, AutoLumaLight.darknessStrength(15, 11));
     }
 
     @Test
-    void darkCaveActivates() {
+    void unlitCaveFullAdjustment() {
         assertEquals(0, AutoLumaLight.effectiveLight(0, 0, 0));
-        assertTrue(AutoLumaLight.isDark(0, 11, false));
+        assertEquals(1.0f, AutoLumaLight.darknessStrength(0, 11));
     }
 
     @Test
-    void torchLightCanPreventActivation() {
-        assertEquals(14, AutoLumaLight.effectiveLight(14, 0, 0));
-        assertFalse(AutoLumaLight.isDark(14, 11, false));
+    void nightSkyAccountsForAmbientDarkening() {
+        assertEquals(4, AutoLumaLight.effectiveLight(0, 15, 11));
+        assertTrue(AutoLumaLight.darknessStrength(4, 11) > 0.5f);
     }
 
     @Test
-    void hysteresisPreventsFlickerAtThreshold() {
-        assertTrue(AutoLumaLight.isDark(11, 11, false));
-        assertTrue(AutoLumaLight.isDark(12, 11, true));
-        assertFalse(AutoLumaLight.isDark(13, 11, true));
+    void blockLightCanOffsetDarkNight() {
+        assertEquals(14, AutoLumaLight.effectiveLight(14, 15, 14));
+        assertEquals(0.0f, AutoLumaLight.darknessStrength(14, 11));
     }
 
     @Test
-    void skyCannotCancelNearbyBlockLight() {
-        assertEquals(9, AutoLumaLight.effectiveLight(9, 15, 14));
+    void lowerLightMeansStrongerAdjustment() {
+        float previously = 0.0f;
+        for (int level = 15; level >= 0; --level) {
+            float now = AutoLumaLight.darknessStrength(level, 11);
+            assertTrue(now >= previously, "strength must grow in darker areas");
+            previously = now;
+        }
+    }
+
+    @Test
+    void configurableThresholdAndForceMode() {
+        assertEquals(1.0f, AutoLumaLight.darknessStrength(0, 0));
+        assertEquals(0.0f, AutoLumaLight.darknessStrength(1, 0));
+        assertEquals(0.0f, AutoLumaLight.strength(1.0f, 100, false, true));
+        assertEquals(0.3f, AutoLumaLight.strength(1.0f, 30, true, true), 0.00001f);
+        assertEquals(0.0f, AutoLumaLight.strength(0.0f, 100, true, false));
+    }
+
+    @Test
+    void smoothingGraduallyReturnsToZero() {
+        float v = 1.0f;
+        for (int i = 0; i < 130; i++) {
+            float next = AutoLumaLight.smooth(v, 0.0f, 8);
+            assertTrue(next <= v);
+            v = next;
+        }
+        assertEquals(0.0f, v, 0.0006f);
+        assertEquals(0.5f, AutoLumaLight.smooth(0.0f, 1.0f, 2));
+        assertEquals(1.0f, AutoLumaLight.smooth(0.0f, 1.0f, 1));
+    }
+
+    @Test
+    void postLevelsHaveValidBounds() {
+        assertEquals(0, AutoLumaLight.postLevel(0.0f));
+        assertEquals(6, AutoLumaLight.postLevel(0.5f));
+        assertEquals(12, AutoLumaLight.postLevel(1.0f));
+        assertEquals(12, AutoLumaLight.postLevel(9.0f));
+        assertEquals(0, AutoLumaLight.postLevel(-9.0f));
+    }
+
+    @Test
+    void fallbackModesHaveSaneStrengths() {
+        assertEquals(0.0f, AutoLumaLight.gammaBonus(0.0f));
+        assertEquals(15.0f, AutoLumaLight.gammaBonus(1.0f));
+        assertEquals(0.25f, AutoLumaLight.nightVisionStrength(0.25f));
     }
 }

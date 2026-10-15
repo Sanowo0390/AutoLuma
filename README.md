@@ -1,81 +1,97 @@
 # AutoLuma
 
-Automatically brighten dark places in **Minecraft Java Edition 26.3 (Fabric)**, without permanently changing the game's brightness setting.
+[![Build](https://github.com/Sanowo0390/AutoLuma/actions/workflows/build.yml/badge.svg)](https://github.com/Sanowo0390/AutoLuma/actions/workflows/build.yml)
 
-暗い場所だけ自動的に明るくする、**Minecraft Java Edition 26.3 対応・Fabric クライアント用Mod**です。
+**Automatic brightness for Minecraft Java Edition 26.3 (Fabric).**
 
-## Features / 主な機能
+暗い場所に入ると徐々に画面を明るくし、明るい場所に戻ると元の明るさに復帰するFabricクライアントMod。
 
-- Automatically applies extra gamma in dark areas and gradually returns to normal in bright areas. / 暗所で明るくなり、明るい場所に戻ると自然に復帰
-- Configure **Gamma boost: 0–1500%** in **Mod Menu**. / Mod Menuから増加率を変更
-- Configurable darkness threshold (light level 0–14), transition smoothing (1–60 ticks), and enable/disable switch.
-- Two-position light sampling and hysteresis reduce flicker. / 足元・目線の光量を確認し、頻繁な切り替えを抑制
-- Client-side only. Does not edit `options.txt`. / サーバー側への導入不要、通常の明るさ設定を保持
-- Japanese and English UI. / 日本語・英語対応
-- Separate block/sky-light sampling with night-time correction (default threshold: **11**).
-- A live readout of nearby light and gamma, plus an **Always apply (test mode)** toggle to distinguish detection issues from rendering/shader issues.
+> **Status:** Experimental v1.1.0. Build tests and GLSL validation run on GitHub Actions. Visual results, shader-pack compatibility, and game startup have not been manually verified. This is **not a stable release**.
 
-### Shader compatibility / シェーダー互換モード（実験的）
+## Features / 機能
 
-Rendering mode in Mod Menu can now be switched between:
-- **Gamma (vanilla) / ガンマ補正（通常）:** uses vanilla lightmap gamma; can be ignored by shader packs.
-- **Night vision (shader test) / 暗視補正（シェーダー向け）:** emulates local night-vision lightmap strength without applying a status effect. Use this if gamma does not visually change your scene with Iris. This affects colors differently from gamma and is **not guaranteed to work with every shader**.
+- **Continuous exposure:** darker areas receive more correction; smoothly fades out in daylight.
+- **Screen post-processing:** lifts dark pixels *after* world rendering. Unlike lightmap gamma, it can lift even near-black output. Added in **Minecraft 26.3**.
+- **Auto mode:** selects client-side Night Vision in vanilla rendering, and a screen post-effect when Iris is actively rendering a shader pack. Manual rendering modes remain available.
+- **Mod Menu configuration:** 0–100% **correction strength**, light threshold 0–14, transition time 1–60 ticks, enable/disable, rendering mode, and temporary force-apply diagnostic mode.
+- **Immediate preview:** changing a slider refreshes the correction without waiting for the world to resume from the pause menu.
+- **Diagnostics:** effective/block/sky/darkening light values, strength %, active post-effect level, Iris shader status and engine callback counters.
+- **Client-side:** no server install, no `options.txt` mutation, no fake potion effects, no changing server lighting.
+- **Japanese and English** included.
 
-The 0–1500% slider maps to 0–100% night-vision strength in this mode; it is not a linear luminance percentage. If another mod manages night vision, it can interact with this rendering mode. ScalableLux updates world lighting and is not known to modify the same lightmap rendering branch.
+## How it works / 補正方式
 
-## Checking if AutoLuma works / 動作確認
+| Mode | What it does | When to try |
+| --- | --- | --- |
+| **Auto (default)** | Night Vision in vanilla; post-effect when Iris shaders are active | Recommended first; changes renderer according to the active shader pack |
+| Post-effect | Full-screen contrast-preserving dark lift, applied between world rendering and HUD | Primary rendering backend for 26.3 |
+| Night vision | Client-only vanilla night-vision lightmap branch (no potion status) | Fallback for shader packs that support vanilla night vision |
+| Gamma | Adds transient brightness to the vanilla lightmap | Low overhead, suitable for vanilla lighting but may have no effect with shaders |
 
-Open Mod Menu → AutoLuma → Configure. Read the **Light / Block / Sky / Sky darken** diagnostic values and **Applied bonus** (the previous tick's values are shown while the single-player game is paused in menus).
+### Shader compatibility
 
-- In full daylight, effective light should be around 15 and the bonus normally drops to zero.
-- In a cave or outdoors at night, effective light should fall below the chosen threshold (default 11), causing a smooth gamma boost.
-- If **Always apply (test mode)** brightens the screen but auto mode does not, raise the darkness threshold.
-- If **Always apply** reports a positive bonus but there is no visual change, first switch to **Night vision (shader test)**. If it also has no effect, temporarily disable Iris shaders, and compare with and without ScalableLux.
-- Disable test mode to resume automatic behavior.
+ScalableLux modifies world lighting calculations; AutoLuma operates on the client render pipeline. They are not known to directly conflict, but compatibility is not guaranteed.
 
-Existing `config/autoluma.json` files retain the previous darkness threshold (7 by default in v1.0.0). To use the new default of 11, move the slider or remove the old config file while the game is closed.
+Iris may replace custom core shaders and shader packs are free to implement their own lighting. A Minecraft 26.3 post effect is executed after world rendering by the vanilla GameRenderer pipeline, so it should be more robust than gamma in many situations, **but it is not guaranteed across all Iris packs or mod combinations**. The Night Vision and Gamma alternatives remain available.
 
-> **Note / 注意:** The percentage is an extra **gamma amount**, **not a linear increase in screen luminance**. For example, +500% means adding 5.0 to the lightmap gamma. Shader packs with custom lighting may not respond to this adjustment. Darkness detection uses local game light levels, not image-based auto exposure.
->
-> **注意：** 「500%」は画面の輝度が5倍になる意味ではなく、ライトマップのガンマに5.0を加えます。シェーダーによっては効果が弱い／出ない場合があります。
+In particular, **Auto does not claim universal compatibility or patch Iris shader packs directly**. You can disable the active Iris shader pack to compare results. If all modes have no effect, attach logs and the Mod Menu diagnostic values to an Issue.
 
-## Requirements / 動作環境
+### Important: percentage semantics
 
-| Component | Version |
-| --- | --- |
-| Minecraft: Java Edition | 26.3 |
-| Java / JDK | 25 (JDK is needed to build) |
-| Fabric Loader | 0.19.5 or newer |
-| Fabric API | Version compatible with 26.3 |
-| Mod Menu | 21.0.0 (optional for gameplay; required for configuration UI) |
+**Strength 0–100% is an artistic correction parameter, not a screen-brightness or luminance multiplier.** At 100%, the post-effect raises shadow detail and adds a small black-level lift; increasing this is *not* equivalent to multiplying physical brightness. Darker environments receive more correction automatically.
 
-## Installation / 導入方法
+The first launch of v1.1.0 migrates older settings: v1.0.x `boostPercent=500` becomes `strengthPercent=33`, preserving the proportional slider position, and the old `useNightVision=true` preference maps to Night Vision mode. Existing `darkThreshold` and `transitionTicks` are retained. Save the configuration in Mod Menu to write the new format.
 
-1. Install Fabric Loader and Fabric API for Minecraft 26.3. / 26.3用Fabric LoaderとFabric APIを導入
-2. Place the built AutoLuma JAR into your client's `mods/` folder. / JARをクライアントの`mods`へ
-3. Install **Mod Menu 21.0.0** to edit settings. / 設定変更にはMod Menu 21.0.0が必要
-4. Open **Mods → AutoLuma → Configure**. / Mod MenuのAutoLumaから設定画面を開く
+## Requirements
 
-Configurations are saved to `config/autoluma.json`.
+- Minecraft **Java Edition 26.3**
+- **Fabric Loader 0.19.5+** and Fabric API for 26.3
+- **Mod Menu 21.0.0** for settings (optional for gameplay)
+- Java **25** for building
 
-## Building / ビルド
+## Install
 
-Requires **JDK 25**. On Windows, run `./build.ps1` in PowerShell; it downloads official Gradle 9.7.1 if necessary. Alternatively, with Gradle installed:
+1. Install Fabric Loader + Fabric API.
+2. Download the JAR from a successful [GitHub Actions build](https://github.com/Sanowo0390/AutoLuma/actions/workflows/build.yml) (Artifacts section). **Do not download an untested build as if it were a stable release.**
+3. Place the JAR in your client's `mods` folder.
+4. Open Mod Menu → AutoLuma → Configure.
+5. Start with Auto mode, threshold 11 and 70% correction strength. To test the full-screen dark lift without Iris, explicitly select Post-effect mode.
 
-```shell
-gradle build
+Settings: `config/autoluma.json`. Local settings and secrets are not committed.
+
+## Verification checklist / 動作確認
+
+1. In daylight, the intensity readout should fall to 0%, with post level 0/12.
+2. In a pitch-black cave, intensity should rise smoothly. In Auto mode with no Iris shader pack active, Night Vision is used, so post level remains 0/12. For post-processing tests, select Post-effect mode explicitly.
+3. Enable **Always apply (diagnostic)** at 100% strength. Closing the menu should visibly brighten the whole world, even dark pixels.
+4. Change the strength from 0% to 100% while paused; it should preview the target intensity immediately.
+5. Read **Post queued**: if the counter increases, the client has requested AutoLuma's post effect. This confirms an attempt to schedule it, **not** that the GPU successfully rendered it.
+6. If nothing changes visually, try manually selecting Night Vision, then Gamma, and compare with Iris shaders disabled.
+7. When testing with ScalableLux, repeat once with only Fabric API, Mod Menu and AutoLuma active to isolate another lighting mod.
+8. Verify server-side post effects continue to work (AutoLuma appends to an independent copy of the requested effect list).
+
+### Runtime instrumentation
+
+**Gamma/NV hook counts** are incremented when the relevant render method runs. The **Post queued** counter measures requests for post-processing, not successful GPU execution. The current test suite validates source calculations, the JAR build and GLSL syntax, but does *not* perform screenshot comparison or start a graphics client. Please do not report those parts as verified.
+
+## Build
+
+Requires JDK 25 and Gradle 9.7.1:
+
+```bash
+gradle clean build
 ```
 
-Result: `build/libs/autoluma-1.0.2.jar`. GitHub Actions also compiles the project and uploads build artifacts for each push and pull request.
+On Windows, run `./build.ps1` in PowerShell. This fetches official Gradle and validates its SHA-256. The result is `build/libs/autoluma-1.1.0.jar`.
 
-**Verification status:** API references have been reviewed for Minecraft 26.3. Runtime behavior and third-party shader compatibility have **not yet been verified in-game**. Do not treat an untested build as a stable release.
+The GitHub Actions workflow additionally validates the fragment shader with `glslangValidator` and executes unit tests, including checks of the twelve screen-effect definitions. No release is automatically published.
 
-## Compatibility / 互換性
+## Notes
 
-This mod only changes the client-side extracted **lightmap gamma or optional night-vision lightmap strength**. It does not alter server-side lighting, block light, real potion effects, or the user's saved vanilla brightness slider. Other mods that patch the same lightmap pipeline can conflict. Please respect multiplayer server rules.
+Post-processing intentionally runs after world rendering and before the normal HUD so HUD elements are not brightened unnecessarily. Multiple screen post effects will run in sequence; if a server or resource pack already applies post-processing, the final look will depend on their order.
 
-Minecraft、Fabric、Mod Menuはそれぞれの権利者に帰属します。AutoLumaは非公式のModです。
+Minecraft, Fabric, Iris and Mod Menu belong to their respective rights holders. AutoLuma is an unofficial independent project.
 
-## License / ライセンス
+## License
 
-MIT © 2026 Sanowo0390 and contributors. See [LICENSE](LICENSE).
+MIT © 2026 Sanowo0390 and contributors — see [LICENSE](LICENSE).

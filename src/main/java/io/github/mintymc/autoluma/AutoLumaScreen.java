@@ -9,14 +9,12 @@ import net.minecraft.network.chat.Component;
 import java.util.function.IntConsumer;
 import java.util.function.IntFunction;
 
-/** Vanilla-only settings UI; no Cloth Config or YACL dependency. */
+/** Mod Menu settings + diagnostic counters; no additional config GUI library. */
 public final class AutoLumaScreen extends Screen {
     private final Screen parent;
-    private final AutoLumaConfig cfg = AutoLumaClient.config();
-    private Button enabledButton;
-    private Button forceButton;
-    private Button renderModeButton;
-    private int startY;
+    private final AutoLumaConfig config = AutoLumaClient.config();
+    private Button enabledButton, forceButton, modeButton;
+    private int controlsY;
 
     public AutoLumaScreen(Screen parent) {
         super(Component.translatable("autoluma.title"));
@@ -25,110 +23,122 @@ public final class AutoLumaScreen extends Screen {
 
     @Override
     protected void init() {
-        int w = Math.min(310, Math.max(180, this.width - 24));
-        int x = (this.width - w) / 2;
-        startY = Math.max(44, (this.height - 220) / 2 + 43);
+        int width = Math.min(310, Math.max(160, this.width - 28));
+        int x = (this.width - width) / 2;
+        controlsY = Math.max(45, (this.height - 254) / 2 + 48);
 
         enabledButton = addRenderableWidget(Button.builder(enabledText(), button -> {
-            cfg.enabled = !cfg.enabled;
+            config.enabled = !config.enabled;
             enabledButton.setMessage(enabledText());
-        }).bounds(x, startY, w, 20).build());
+            preview();
+        }).bounds(x, controlsY, width, 20).build());
 
         forceButton = addRenderableWidget(Button.builder(forceText(), button -> {
-            cfg.forceBoost = !cfg.forceBoost;
+            config.forceBoost = !config.forceBoost;
             forceButton.setMessage(forceText());
-        }).bounds(x, startY + 23, w, 20).build());
+            preview();
+        }).bounds(x, controlsY + 23, width, 20).build());
 
-        renderModeButton = addRenderableWidget(Button.builder(renderModeText(), button -> {
-            cfg.useNightVision = !cfg.useNightVision;
-            renderModeButton.setMessage(renderModeText());
-        }).bounds(x, startY + 46, w, 20).build());
+        modeButton = addRenderableWidget(Button.builder(modeText(), button -> {
+            AutoLumaConfig.RenderMode[] modes = AutoLumaConfig.RenderMode.values();
+            config.renderMode = modes[(config.renderMode.ordinal() + 1) % modes.length];
+            modeButton.setMessage(modeText());
+            preview();
+        }).bounds(x, controlsY + 46, width, 20).build());
 
-        addRenderableWidget(new RangeSlider(x, startY + 71, w, cfg.boostPercent,
-            0, 1500, 25, val -> cfg.boostPercent = val,
-            val -> Component.translatable("autoluma.boost", val)));
+        addRenderableWidget(new RangeSlider(x, controlsY + 73, width, config.strengthPercent,
+                0, 100, 1, value -> config.strengthPercent = value,
+                value -> Component.translatable("autoluma.strength", value)));
 
-        addRenderableWidget(new RangeSlider(x, startY + 95, w, cfg.darkThreshold,
-            0, 14, 1, val -> cfg.darkThreshold = val,
-            val -> Component.translatable("autoluma.threshold", val)));
+        addRenderableWidget(new RangeSlider(x, controlsY + 100, width, config.darkThreshold,
+                0, 14, 1, value -> config.darkThreshold = value,
+                value -> Component.translatable("autoluma.threshold", value)));
 
-        addRenderableWidget(new RangeSlider(x, startY + 119, w, cfg.transitionTicks,
-            1, 60, 1, val -> cfg.transitionTicks = val,
-            val -> Component.translatable("autoluma.speed", val)));
+        addRenderableWidget(new RangeSlider(x, controlsY + 127, width, config.transitionTicks,
+                1, 60, 1, value -> config.transitionTicks = value,
+                value -> Component.translatable("autoluma.speed", value)));
 
-        addRenderableWidget(Button.builder(Component.translatable("autoluma.done"), button -> onClose())
-            .bounds(x, Math.min(startY + 178, height - 24), w, 20).build());
+        addRenderableWidget(Button.builder(Component.translatable("autoluma.done"),
+                button -> onClose()).bounds(x, Math.min(controlsY + 207, height - 24), width, 20).build());
     }
 
     private Component enabledText() {
         return Component.translatable("autoluma.enabled",
-            Component.translatable(cfg.enabled ? "autoluma.on" : "autoluma.off"));
-    }
-
-    private Component renderModeText() {
-        return Component.translatable("autoluma.render_mode",
-            Component.translatable(cfg.useNightVision ? "autoluma.mode_nightvision" : "autoluma.mode_gamma"));
+            Component.translatable(config.enabled ? "autoluma.on" : "autoluma.off"));
     }
 
     private Component forceText() {
         return Component.translatable("autoluma.force",
-            Component.translatable(cfg.forceBoost ? "autoluma.on" : "autoluma.off"));
+            Component.translatable(config.forceBoost ? "autoluma.on" : "autoluma.off"));
+    }
+
+    private Component modeText() {
+        return Component.translatable("autoluma.render_mode",
+            Component.translatable("autoluma.mode." + config.renderMode.name().toLowerCase(java.util.Locale.ROOT)));
+    }
+
+    private void preview() {
+        AutoLumaClient.previewSettings();
     }
 
     @Override
     public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float partialTick) {
         super.extractRenderState(graphics, mouseX, mouseY, partialTick);
-        graphics.centeredText(font, title, width / 2, 22, 0xFFFFFFFF);
-        graphics.centeredText(font, Component.translatable("autoluma.description"), width / 2, 35, 0xFFB0B0B0);
+        graphics.centeredText(font, title, width / 2, 18, 0xFFFFFFFF);
+        graphics.centeredText(font, Component.translatable("autoluma.description"), width / 2, 31, 0xFFB0B0B0);
 
         graphics.centeredText(font, Component.translatable("autoluma.diagnostic",
             AutoLumaClient.sampledLight(), AutoLumaClient.sampledBlock(),
             AutoLumaClient.sampledSky(), AutoLumaClient.sampledSkyDarken()),
-            width / 2, startY + 144, 0xFFB0B0B0);
-        if (height >= 260) {
-            graphics.centeredText(font, Component.translatable("autoluma.diagnostic_boost",
-                Math.round(AutoLumaClient.bonusGamma() * 100.0f),
-                Math.round(AutoLumaClient.nightVisionStrength() * 100.0f),
-                Component.translatable(AutoLumaClient.isDark() ? "autoluma.on" : "autoluma.off")),
-                width / 2, startY + 156, 0xFFB0B0B0);
+            width / 2, controlsY + 158, 0xFFC0C0C0);
+
+        graphics.centeredText(font, Component.translatable("autoluma.diagnostic_strength",
+            Math.round(AutoLumaClient.intensity() * 100.0f), AutoLumaClient.postLevel(),
+            Component.translatable(AutoLumaClient.shadersActive() ? "autoluma.on" : "autoluma.off")),
+            width / 2, controlsY + 170, 0xFFC0C0C0);
+
+        if (height >= 290) {
+            graphics.centeredText(font, Component.translatable("autoluma.diagnostic_render",
+                AutoLumaClient.gammaHookCalls(), AutoLumaClient.nightVisionHookCalls(),
+                AutoLumaClient.postRequestCalls()), width / 2, controlsY + 182, 0xFF999999);
         }
     }
 
     @Override
     public void onClose() {
-        cfg.save();
+        config.save();
         this.minecraft.gui.setScreen(parent);
     }
 
     private static final class RangeSlider extends AbstractSliderButton {
         private final int min, max, step;
-        private final IntConsumer set;
+        private final IntConsumer setter;
         private final IntFunction<Component> label;
 
         RangeSlider(int x, int y, int width, int initial, int min, int max, int step,
-                    IntConsumer set, IntFunction<Component> label) {
+                    IntConsumer setter, IntFunction<Component> label) {
             super(x, y, width, 20, label.apply(initial), (double) (initial - min) / (max - min));
             this.min = min;
             this.max = max;
             this.step = step;
-            this.set = set;
+            this.setter = setter;
             this.label = label;
             updateMessage();
         }
 
         private int selected() {
-            int steps = Math.round((float) ((max - min) * this.value / step));
-            return Math.min(max, min + steps * step);
+            return Math.min(max, min + Math.round((max - min) * (float) value / step) * step);
         }
 
         @Override
         protected void updateMessage() {
-            this.setMessage(label.apply(selected()));
+            setMessage(label.apply(selected()));
         }
 
         @Override
         protected void applyValue() {
-            this.set.accept(selected());
+            setter.accept(selected());
+            AutoLumaClient.previewSettings();
         }
     }
 }

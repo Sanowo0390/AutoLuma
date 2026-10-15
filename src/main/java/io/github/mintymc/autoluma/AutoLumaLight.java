@@ -1,10 +1,6 @@
 package io.github.mintymc.autoluma;
 
-/**
- * Pure light-level and activation calculations. Vanilla's unattenuated sky-light
- * value is 15 outside even at night, so subtract the current sky darkening.
- * Keep light detection separate from the renderer's gamma adjustment.
- */
+/** Pure lighting, smoothing and quantization helpers; covered by unit tests. */
 public final class AutoLumaLight {
     private AutoLumaLight() {}
 
@@ -13,21 +9,39 @@ public final class AutoLumaLight {
                 Math.max(0, clamp(skyLight, 0, 15) - clamp(skyDarken, 0, 15)));
     }
 
-    public static boolean isDark(int effectiveLight, int threshold, boolean previouslyDark) {
-        int enter = clamp(threshold, 0, 14);
-        if (previouslyDark) {
-            // Separate exit threshold avoids flicker around lights or doorways.
-            return effectiveLight < Math.min(15, enter + 2);
-        }
-        return effectiveLight <= enter;
+    /** 0 = bright, 1 = pitch-black. Continuous, rather than an on/off gate. */
+    public static float darknessStrength(int effectiveLight, int darkThreshold) {
+        int threshold = clamp(darkThreshold, 0, 14);
+        return clamp01((threshold + 1.0f - clamp(effectiveLight, 0, 15)) / (threshold + 1.0f));
     }
 
-    /**
-     * Night-vision intensity is linear across the existing 0..1500% slider.
-     * This is NOT a photometric mapping between gamma and night vision.
-     */
-    public static float nightVisionStrength(float bonusGamma) {
-        return Math.max(0.0f, Math.min(1.0f, bonusGamma / 15.0f));
+    /** UI controls intensity, not a physically linear display luminance multiplier. */
+    public static float strength(float darknessStrength, int strengthPercent, boolean enabled, boolean forceBoost) {
+        if (!enabled) return 0.0f;
+        return clamp01((forceBoost ? 1.0f : darknessStrength) *
+                clamp(strengthPercent, 0, 100) / 100.0f);
+    }
+
+    public static float smooth(float previous, float target, int ticks) {
+        float current = previous + (target - previous) / Math.max(1, ticks);
+        return Math.abs(current - target) < 0.0005f ? target : current;
+    }
+
+    /** 12 discrete full-frame post-effect levels, balancing smoothness and cache size. */
+    public static int postLevel(float intensity) {
+        return clamp(Math.round(clamp01(intensity) * 12.0f), 0, 12);
+    }
+
+    public static float gammaBonus(float intensity) {
+        return 15.0f * clamp01(intensity);
+    }
+
+    public static float nightVisionStrength(float intensity) {
+        return clamp01(intensity);
+    }
+
+    private static float clamp01(float value) {
+        return Math.max(0.0f, Math.min(1.0f, value));
     }
 
     private static int clamp(int value, int min, int max) {

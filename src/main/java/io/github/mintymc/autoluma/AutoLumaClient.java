@@ -6,17 +6,18 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.LightLayer;
 
-/**
- * Client-only brightness controller. Does not mutate Minecraft's gamma option.
- */
+/** Local controller: sunlight detection -> smooth intensity -> render backend. */
 public final class AutoLumaClient implements ClientModInitializer {
     private static AutoLumaConfig config;
-    private static boolean dark;
-    private static float currentBonus;
-    private static int sampledLight = 15;
-    private static int sampledBlock = 15;
-    private static int sampledSky = 15;
-    private static int sampledSkyDarken;
+    private static float intensity;
+    private static int effectiveLight = 15;
+    private static int blockLight = 15;
+    private static int skyLight = 15;
+    private static int skyDarken = 0;
+    private static boolean irisActive;
+    private static volatile int gammaHookCalls;
+    private static volatile int nightVisionHookCalls;
+    private static volatile int postRequestCalls;
 
     @Override
     public void onInitializeClient() {
@@ -24,86 +25,90 @@ public final class AutoLumaClient implements ClientModInitializer {
         ClientTickEvents.END_CLIENT_TICK.register(AutoLumaClient::tick);
     }
 
-    public static AutoLumaConfig config() {
-        return config;
+    public static AutoLumaConfig config() { return config; }
+    public static float intensity() { return intensity; }
+    public static int sampledLight() { return effectiveLight; }
+    public static int sampledBlock() { return blockLight; }
+    public static int sampledSky() { return skyLight; }
+    public static int sampledSkyDarken() { return skyDarken; }
+    public static boolean shadersActive() { return irisActive; }
+    public static boolean isDark() { return effectiveLight <= config.darkThreshold; }
+    public static int gammaHookCalls() { return gammaHookCalls; }
+    public static int nightVisionHookCalls() { return nightVisionHookCalls; }
+    public static int postRequestCalls() { return postRequestCalls; }
+    public static void markGammaHook() { gammaHookCalls++; }
+    public static void markNightVisionHook() { nightVisionHookCalls++; }
+    public static void markPostRequest() { postRequestCalls++; }
+
+    public static AutoLumaConfig.RenderMode effectiveMode() {
+        if (config == null) return AutoLumaConfig.RenderMode.POST_EFFECT;
+        // The default backend adapts to the current renderer. Vanilla night vision
+        // works in truly unlit caves without an extra full-screen GPU pass;
+        // active Iris shader packs get a post effect after world rendering.
+        if (config.renderMode == AutoLumaConfig.RenderMode.AUTO) {
+            return irisActive ? AutoLumaConfig.RenderMode.POST_EFFECT
+                              : AutoLumaConfig.RenderMode.NIGHT_VISION;
+        }
+        return config.renderMode;
     }
 
-    /** Extra gamma to add to the extracted lightmap brightness. */
     public static float bonusGamma() {
-        return currentBonus;
+        return effectiveMode() == AutoLumaConfig.RenderMode.GAMMA
+                ? AutoLumaLight.gammaBonus(intensity) : 0.0f;
     }
 
-    /** Enable vanilla-gamma fallback or a night-vision-style lightmap path. */
-    public static boolean useNightVision() {
-        return config != null && config.useNightVision && config.enabled;
+    public static float nightVisionStrength() {
+        return effectiveMode() == AutoLumaConfig.RenderMode.NIGHT_VISION
+                ? AutoLumaLight.nightVisionStrength(intensity) : 0.0f;
+    }
+
+    public static int postLevel() {
+        return effectiveMode() == AutoLumaConfig.RenderMode.POST_EFFECT
+                ? AutoLumaLight.postLevel(intensity) : 0;
     }
 
     /**
-     * Extra night-vision strength, from 0 to 1.
-     * Preserve existing vanilla night vision when the mod is inactive.
+     * Called by GUI when settings change; also runs while the world is paused.
+     * This avoids the old bug where dragging a slider had no immediate effect.
      */
-    public static float nightVisionStrength() {
-        return useNightVision() ? AutoLumaLight.nightVisionStrength(currentBonus) : 0.0f;
-    }
-
-    public static int sampledLight() {
-        return sampledLight;
-    }
-
-    public static int sampledBlock() {
-        return sampledBlock;
-    }
-
-    public static int sampledSky() {
-        return sampledSky;
-    }
-
-    public static int sampledSkyDarken() {
-        return sampledSkyDarken;
-    }
-
-    public static boolean isDark() {
-        return dark;
+    public static void previewSettings() {
+        config.clamp();
+        Minecraft client = Minecraft.getInstance();
+        sampleLight(client);
+        intensity = targetIntensity();
     }
 
     private static void tick(Minecraft client) {
+        if (config == null) return;
         if (client.level == null || client.player == null) {
-            dark = false;
-            currentBonus = 0.0f;
-            sampledLight = 15;
-            sampledSky = 15;
-            sampledBlock = 15;
-            sampledSkyDarken = 0;
+            intensity = 0.0f;
+            effectiveLight = 15;
+            blockLight = 15;
+            skyLight = 15;
+            skyDarken = 0;
+            irisActive = false;
             return;
         }
-        if (client.isPaused()) {
-            return;
-        }
+        sampleLight(client);
+        intensity = AutoLumaLight.smooth(intensity, targetIntensity(), config.transitionTicks);
+    }
 
+    private static void sampleLight(Minecraft client) {
+        if (client.level == null || client.player == null) return;
         BlockPos feet = client.player.blockPosition();
         BlockPos eyes = BlockPos.containing(client.player.getEyePosition());
+        blockLight = Math.max(client.level.getBrightness(LightLayer.BLOCK, feet),
+                              client.level.getBrightness(LightLayer.BLOCK, eyes));
+        skyLight = Math.max(client.level.getBrightness(LightLayer.SKY, feet),
+                            client.level.getBrightness(LightLayer.SKY, eyes));
+        skyDarken = client.level.getSkyDarken();
+        effectiveLight = AutoLumaLight.effectiveLight(blockLight, skyLight, skyDarken);
+        irisActive = IrisCompat.isActive();
+    }
 
-        // Separate SKY and BLOCK sampling makes night-time exposure explicit.
-        // Sampling both feet and eyes keeps the mod from overreacting to a dark
-        // block just below the head in otherwise bright surroundings.
-        sampledBlock = Math.max(
-                client.level.getBrightness(LightLayer.BLOCK, feet),
-                client.level.getBrightness(LightLayer.BLOCK, eyes));
-        sampledSky = Math.max(
-                client.level.getBrightness(LightLayer.SKY, feet),
-                client.level.getBrightness(LightLayer.SKY, eyes));
-        sampledSkyDarken = client.level.getSkyDarken();
-        sampledLight = AutoLumaLight.effectiveLight(sampledBlock, sampledSky, sampledSkyDarken);
-
-        dark = AutoLumaLight.isDark(sampledLight, config.darkThreshold, dark);
-        float target = (config.enabled && (config.forceBoost || dark))
-                ? config.boostPercent / 100.0f : 0.0f;
-
-        // Smoothed transitions; resetting to 0 restores the exact vanilla render
-        // value automatically. The user-adjusted brightness slider remains intact.
-        currentBonus += (target - currentBonus) / Math.max(1, config.transitionTicks);
-        if (Math.abs(target - currentBonus) < 0.001f) {
-            currentBonus = target;
-        }
+    private static float targetIntensity() {
+        return AutoLumaLight.strength(
+            AutoLumaLight.darknessStrength(effectiveLight, config.darkThreshold),
+            config.strengthPercent, config.enabled, config.forceBoost);
     }
 }

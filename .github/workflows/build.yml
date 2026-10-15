@@ -1,4 +1,4 @@
-name: Build
+name: Build and validate
 
 on:
   push:
@@ -25,9 +25,14 @@ jobs:
         uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '9.7.1'
-      - name: Build AutoLuma
-        run: gradle --no-daemon build
-      - name: Upload build artifacts
+      - name: Validate GLSL shader syntax
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq glslang-tools
+          glslangValidator -S frag src/main/resources/assets/autoluma/shaders/post/brightness_lift.fsh
+      - name: Compile and run JUnit tests
+        run: gradle --no-daemon clean build
+      - name: Upload mod JAR
         if: success()
         uses: actions/upload-artifact@v4
         with:
@@ -36,4 +41,4 @@ jobs:
             build/libs/autoluma-*.jar
             !build/libs/*-sources.jar
           if-no-files-found: error
-          retention-days: 7
+          retention-days: 14

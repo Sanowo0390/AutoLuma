@@ -6,20 +6,16 @@ import net.minecraft.client.renderer.LightmapRenderStateExtractor;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 
-/**
- * Vanilla gamma: apply the transient bonus only to the extracted render state.
- * Optional night-vision mode: keep gamma unchanged and activate the client-side
- * night-vision lightmap branch. Never change options.txt or player effects.
- */
+/** Both render fallbacks are opt-in; post-effect mode leaves lightmaps intact. */
 @Mixin(LightmapRenderStateExtractor.class)
 public abstract class LightmapExtractorMixin {
     @ModifyExpressionValue(
         method = "extract",
         at = @At(value = "INVOKE", target = "Ljava/lang/Math;max(FF)F", ordinal = 0)
     )
-    private float autoluma$adjustBrightness(float vanillaBrightness) {
-        return AutoLumaClient.useNightVision() ? vanillaBrightness :
-                Math.max(0.0F, vanillaBrightness + AutoLumaClient.bonusGamma());
+    private float autoluma$adjustGamma(float vanillaGamma) {
+        AutoLumaClient.markGammaHook();
+        return Math.max(0.0f, vanillaGamma + AutoLumaClient.bonusGamma());
     }
 
     @ModifyExpressionValue(

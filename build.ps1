@@ -1,4 +1,4 @@
-# Build AutoLuma with official Gradle, JDK 25 required
+# Builds AutoLuma with JDK 25 and a SHA-256-verified official Gradle release.
 $ErrorActionPreference = 'Stop'
 $root = Split-Path -Parent $MyInvocation.MyCommand.Path
 Push-Location $root
@@ -27,5 +27,5 @@ try {
     }
     & $bat --no-daemon build
     if ($LASTEXITCODE -ne 0) { throw "Gradle build failed: $LASTEXITCODE" }
-    Write-Host 'Build complete: build\libs\autoluma-1.0.2.jar'
+    Write-Host 'Build complete: build\libs\autoluma-1.1.0.jar'
 } finally { Pop-Location }

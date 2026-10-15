@@ -5,7 +5,8 @@
   "compatibilityLevel": "JAVA_25",
   "client": [
     "LightmapExtractorMixin",
-    "GameRendererNightVisionMixin"
+    "GameRendererNightVisionMixin",
+    "LocalPlayerPostEffectsMixin"
   ],
   "injectors": {
     "defaultRequire": 1
