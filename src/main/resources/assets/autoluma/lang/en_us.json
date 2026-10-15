@@ -16,5 +16,6 @@
   "autoluma.diagnostic": "Light %s | Block %s | Sky %s | Darken %s",
   "autoluma.diagnostic_strength": "Correction %s%% | Renderer %s",
   "autoluma.done": "Save and return",
-  "autoluma.mode.post_effect_blocked": "Night vision"
+  "autoluma.mode.post_effect_blocked": "Night vision",
+  "autoluma.uniform_reads": "Uniform reads: Iris %s / Vitrail %s"
 }

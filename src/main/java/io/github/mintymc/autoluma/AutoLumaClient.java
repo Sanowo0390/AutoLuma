@@ -19,6 +19,8 @@ public final class AutoLumaClient implements ClientModInitializer {
     private static volatile int gammaHookCalls;
     private static volatile int nightVisionHookCalls;
     private static volatile int postRequestCalls;
+    private static volatile int irisUniformReads;
+    private static volatile int vitrailUniformReads;
 
     @Override
     public void onInitializeClient() {
@@ -52,6 +54,10 @@ public final class AutoLumaClient implements ClientModInitializer {
     public static void markGammaHook() { gammaHookCalls++; }
     public static void markNightVisionHook() { nightVisionHookCalls++; }
     public static void markPostRequest() { postRequestCalls++; }
+    public static int irisUniformReads() { return irisUniformReads; }
+    public static int vitrailUniformReads() { return vitrailUniformReads; }
+    public static void markIrisUniformRead() { irisUniformReads++; }
+    public static void markVitrailUniformRead() { vitrailUniformReads++; }
 
     public static AutoLumaConfig.RenderMode effectiveMode() {
         if (config == null) return AutoLumaConfig.RenderMode.NIGHT_VISION;

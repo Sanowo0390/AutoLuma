@@ -1,147 +1,68 @@
 # AutoLuma
 
-[![Build](https://github.com/Sanowo0390/AutoLuma/actions/workflows/build.yml/badge.svg)](https://github.com/Sanowo0390/AutoLuma/actions/workflows/build.yml)
+![Build](https://github.com/Sanowo0390/AutoLuma/actions/workflows/build.yml/badge.svg)
 
-**Automatic brightness for Minecraft Java Edition 26.3 (Fabric).**
+**Minecraft Java Edition 26.3 / Fabric — 自動明るさ補正Mod**
 
-暗い場所に入ると徐々に画面を明るくし、明るい場所に戻ると元の明るさに復帰するFabricクライアントMod。
+暗所で補正強度をなめらかに上げ、明るい場所に戻ると自然に下げます。サーバーの照明、ポーション効果、Minecraftの保存済みガンマ設定は変更しません。
 
-> **Status:** Experimental v1.1.3. Build tests and GLSL validation run on GitHub Actions. Visual results, shader-pack compatibility, and game startup have not been manually verified. This is **not a stable release**.
+> **v1.1.4（試験版）** — Javaコンパイル・単体テスト・GLSL構文検証はGitHub Actionsで実行します。Minecraft実機でのVitrail/Iris/Complementaryとの互換性は未検証です。
 
-## Crash fix in v1.1.1 / クラッシュ修正
+## 動作方式
 
-Minecraft 26.3 may call `GameRenderer.nightVisionScale()` even when the
-player has no real Night Vision potion effect, because AutoLuma enables the
-client-side visual night vision branch. Earlier builds (up through v1.1.0)
-called vanilla's implementation unconditionally, causing a
-`NullPointerException: nightVision is null` in dark areas with no potion.
-Version 1.1.1 checks for a real effect instance before delegating to
-vanilla and adds regression tests. A successful build does not by itself
-verify the complete render pipeline in-game.
+| 描画方式 | 仕組み |
+| --- | --- |
+| **自動（推奨）** | 暗視相当の補正。IrisとVitrailではシェーダーパックの暗視強度・明るさのUniformにも値を渡す |
+| 暗視補正 | バニラのライトマップと対応シェーダー向け暗視強度を補正 |
+| ガンマ補正 | Minecraftのライトマップに一時的な明るさを加算し、対応シェーダーの`screenBrightness`も補正 |
+| 画面補正 | 全画面ポストエフェクトによる暗部補正。試験的な実装で、Vitrail導入時は使用しない |
 
-v1.1.0以前で暗視ポーション効果がない場合に発生したNullPointerExceptionを修正。
-実際のポーション効果がない場合はバニラの暗視強度計算を呼ばず、
-AutoLuma自身の補正値を返します。既存のバニラ暗視効果も保持します。
+### シェーダー互換性
 
-## v1.1.2 Vulkan / Vitrail safety guard
+**Iris 26.3：** Irisの`CommonUniforms.getNightVision()`と、`screenBrightness`用のUniform supplierに対応するオプションのMixinを追加しました。自動モードで以前の全画面ポストエフェクトを選択せず、暗視補正を使います。
 
-A reported **Windows native crash** (`EXCEPTION_ACCESS_VIOLATION 0xc0000005`)
-occurred while changing from Auto to Post-effect mode on Minecraft 26.3 with
-Vitrail 0.13.0-beta and the experimental Vulkan backend enabled. The Java log
-alone **does not identify the failing native module**; `hs_err_pid*.log` is
-required to diagnose the exact driver or renderer stack.
+**Vitrail 0.13.0-beta：** Vitrailの独自`FrameState.nightVision()`および`screenBrightness()`を補正します。Vulkanパイプライン生成中のネイティブクラッシュが報告されているため、Vitrailでの全画面ポストエフェクトを無効化しています。
 
-**Precautionary workaround:** when Vitrail is installed, AutoLuma skips
-Post-effect in the mode selector, and persisted Post-effect settings fall
-back to Night Vision. Post effects remain available without Vitrail.
-This avoids requesting AutoLuma's unverified custom fullscreen Vulkan pass,
-but **does not establish that Vitrail caused the crash or guarantee safety
-from unrelated native crashes**. To investigate a crash, attach the
-JVM `hs_err_pid*.log` along with the launcher log.
+**重要：** いずれの方法もシェーダーパックが該当Uniformを使うことが前提です。Complementaryなどが期待した明るさになるとは限りません。完全な互換性やFullbright効果は保証していません。Iris/Vitrailを使用せずに動作する方式と、シェーダーの照明アルゴリズムには差があります。
 
-Vitrailの読み込みを検出すると、未検証の画面ポストエフェクトを選択から除外し、
-以前保存した設定も暗視方式で代替します。実際の原因がVitrailと確定したわけ
-ではありません。切り替え時に依然としてクラッシュする場合は、ランチャーログ
-に加えて `hs_err_pid*.log` を添付してください。
+## 設定
 
-## Vitrail shader compatibility / Vitrailとの互換性
+Mod Menu → AutoLuma → 設定。
 
-Version 1.1.3 detects Vitrail separately from Iris. Vitrail's shader packs
-receive AutoLuma's simulated night-vision strength via the pack's
-`nightVision` uniform getter, rather than only through Minecraft's vanilla
-lightmap. The compatibility hook uses an optional mixin and is inactive when
-Vitrail is absent. It does not guarantee that Complementary or every shader
-pack will visibly respond; this needs in-game testing.
+- 自動明るさ補正：オン/オフ
+- 常時適用：暗所判定にかかわらず補正を適用
+- 描画方式：自動 / 画面補正 / 暗視補正 / ガンマ補正
+- 補正強度：0–100%
+- 暗所判定：光レベル0–14
+- 切替のなめらかさ：1–100 tick
 
-Vitrail導入時にはIrisとは別に検出し、Vitrailがシェーダーに渡す暗視強度にも
-補正を適用します。Vitrailでクラッシュした未検証の独自ポストエフェクトは
-引き続き使用しません。設定画面にはシェーダーの種類を表示します。
+小さな表示には光量、現在の補正強度、描画環境、Iris/VitrailのUniform読み取り回数が表示されます。**読み取り回数が増えることは、GPU上で目に見える補正が完了した証拠ではありません。**
 
-## Features / 機能
+設定ファイルは`config/autoluma.json`。v1.0.x形式は初回読み込み時に移行します。
 
-- **Continuous exposure:** darker areas receive more correction; smoothly fades out in daylight.
-- **Screen post-processing:** lifts dark pixels *after* world rendering. Unlike lightmap gamma, it can lift even near-black output. Added in **Minecraft 26.3**.
-- **Auto mode:** selects Night Vision for vanilla/Vitrail rendering, and a screen post-effect when Iris is actively rendering a shader pack. Manual rendering modes remain available.
-- **Mod Menu configuration:** 0–100% **correction strength**, light threshold 0–14, transition time 1–100 ticks, enable/disable, rendering mode, and always-apply switch.
-- **Immediate preview:** changing a slider refreshes the correction without waiting for the world to resume from the pause menu.
-- **Diagnostics:** effective/block/sky/darkening light values, strength %, active post-effect level, active shader provider (Iris, Vitrail, or Vanilla).
-- **Client-side:** no server install, no `options.txt` mutation, no fake potion effects, no changing server lighting.
-- **Japanese and English** included.
+## 動作確認
 
-## How it works / 補正方式
+1. Minecraft 26.3 + Fabric API + Mod Menu + AutoLumaを導入。
+2. VitrailまたはIrisでシェーダーパックを有効にし、AutoLumaの画面で描画環境名を確認。
+3. **自動 / 補正強度100% / 常時適用オン**で変化を比較。
+4. 「Uniform読み取り」回数が増えない場合は、実行中のシェーダーが該当値を読んでいない可能性、またはMixinが適用されていない可能性があります。
+5. 回数が増えるのに明るさが変わらない場合は、シェーダーパック側の照明・暗視ロジックが値を使用していない可能性があります。
+6. 切り分けのため、Iris/Vitrailを使わない構成でも比較してください。
 
-| Mode | What it does | When to try |
-| --- | --- | --- |
-| **Auto (default)** | Night Vision in vanilla; post-effect when Iris shaders are active | Recommended first; changes renderer according to the active shader pack |
-| Post-effect | Full-screen contrast-preserving dark lift, applied between world rendering and HUD | Experimental; intentionally disabled while Vitrail is installed |
-| Night vision | Client-only vanilla night-vision lightmap branch (no potion status) | Fallback for shader packs that support vanilla night vision |
-| Gamma | Adds transient brightness to the vanilla lightmap | Low overhead, suitable for vanilla lighting but may have no effect with shaders |
+過去にVitrailで`vkCreateGraphicsPipelines`中の`EXCEPTION_ACCESS_VIOLATION`が報告されています。安全確認が取れるまで、Vitrail環境で画面補正を強制的に有効化しないでください。
 
-### Shader compatibility
+## ビルド
 
-ScalableLux modifies world lighting calculations; AutoLuma operates on the client render pipeline. They are not known to directly conflict, but compatibility is not guaranteed.
-
-Vitrail 0.13.0-beta computes its own shader-pack nightVision uniform independently of Minecraft's lightmap; AutoLuma v1.1.3 now bridges the visual night-vision strength into Vitrail's FrameState.nightVision getter. It requires the shader pack to actually use the nightVision uniform, so individual shader compatibility is still unverified. The bridge does not modify shader pack files or build new Vulkan graphics pipelines.
-\nIris may replace custom core shaders and shader packs are free to implement their own lighting. A Minecraft 26.3 post effect is executed after world rendering by the vanilla GameRenderer pipeline, so it should be more robust than gamma in many situations, **but it is not guaranteed across all Iris packs or mod combinations**. The Night Vision and Gamma alternatives remain available.
-
-In particular, **Auto does not claim universal compatibility or patch Iris shader packs directly**. You can disable the active Iris shader pack to compare results. If all modes have no effect, attach logs and the Mod Menu diagnostic values to an Issue.
-
-### Important: percentage semantics
-
-**Strength 0–100% is an artistic correction parameter, not a screen-brightness or luminance multiplier.** At 100%, the post-effect raises shadow detail and adds a small black-level lift; increasing this is *not* equivalent to multiplying physical brightness. Darker environments receive more correction automatically.
-
-The first launch of v1.1.0 migrates older settings: v1.0.x `boostPercent=500` becomes `strengthPercent=33`, preserving the proportional slider position, and the old `useNightVision=true` preference maps to Night Vision mode. Existing `darkThreshold` and `transitionTicks` are retained. Save the configuration in Mod Menu to write the new format.
-
-## Requirements
-
-- Minecraft **Java Edition 26.3**
-- **Fabric Loader 0.19.5+** and Fabric API for 26.3
-- **Mod Menu 21.0.0** for settings (optional for gameplay)
-- Java **25** for building
-
-## Install
-
-1. Install Fabric Loader + Fabric API.
-2. Download the JAR from a successful [GitHub Actions build](https://github.com/Sanowo0390/AutoLuma/actions/workflows/build.yml) (Artifacts section). **Do not download an untested build as if it were a stable release.**
-3. Place the JAR in your client's `mods` folder.
-4. Open Mod Menu → AutoLuma → Configure.
-5. Start with Auto mode, threshold 11 and 70% correction strength. To test the full-screen dark lift without Iris, explicitly select Post-effect mode.
-
-Settings: `config/autoluma.json`. Local settings and secrets are not committed.
-
-## Verification checklist / 動作確認
-
-1. In daylight, the intensity readout should fall to 0%, with post level 0/12.
-2. In a pitch-black cave, intensity should rise smoothly. In Auto mode with no Iris shader pack active, Night Vision is used, so post level remains 0/12. For post-processing tests, select Post-effect mode explicitly.
-3. Enable **Always apply (diagnostic)** at 100% strength. Closing the menu should visibly brighten the whole world, even dark pixels.
-4. Change the strength from 0% to 100% while paused; it should preview the target intensity immediately.
-5. Read **Post queued**: if the counter increases, the client has requested AutoLuma's post effect. This confirms an attempt to schedule it, **not** that the GPU successfully rendered it.
-6. If nothing changes visually, try manually selecting Night Vision, then Gamma, and compare with Iris shaders disabled.
-7. When testing with ScalableLux, repeat once with only Fabric API, Mod Menu and AutoLuma active to isolate another lighting mod.
-8. Verify server-side post effects continue to work (AutoLuma appends to an independent copy of the requested effect list).
-
-### Runtime instrumentation
-
-**Gamma/NV hook counts** are incremented when the relevant render method runs. The **Post queued** counter measures requests for post-processing, not successful GPU execution. The current test suite validates source calculations, the JAR build and GLSL syntax, but does *not* perform screenshot comparison or start a graphics client. Please do not report those parts as verified.
-
-## Build
-
-Requires JDK 25 and Gradle 9.7.1:
+必要：JDK 25 / Gradle 9.7.1
 
 ```bash
 gradle clean build
 ```
 
-On Windows, run `./build.ps1` in PowerShell. This fetches official Gradle and validates its SHA-256. The result is `build/libs/autoluma-1.1.3.jar`.
+Windows用の`build.ps1`もあります。成功すると`build/libs/autoluma-1.1.4.jar`が生成されます。
 
-The GitHub Actions workflow additionally validates the fragment shader with `glslangValidator` and executes unit tests, including checks of the twelve screen-effect definitions. No release is automatically published.
+GitHub Actions: [ビルド済みJAR](https://github.com/Sanowo0390/AutoLuma/actions/workflows/build.yml)（成功した実行のArtifactsから入手）。
 
-## Notes
+## ライセンス
 
-Post-processing intentionally runs after world rendering and before the normal HUD so HUD elements are not brightened unnecessarily. Multiple screen post effects will run in sequence; if a server or resource pack already applies post-processing, the final look will depend on their order.
-
-Minecraft, Fabric, Iris and Mod Menu belong to their respective rights holders. AutoLuma is an unofficial independent project.
-
-## License
-
-MIT © 2026 Sanowo0390 and contributors — see [LICENSE](LICENSE).
+MIT — [LICENSE](LICENSE)

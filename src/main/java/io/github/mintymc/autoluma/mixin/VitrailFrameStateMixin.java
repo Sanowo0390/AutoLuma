@@ -23,6 +23,7 @@ public abstract class VitrailFrameStateMixin {
     @Inject(method = "nightVision()F", at = @At("RETURN"),
             cancellable = true, remap = false, require = 0)
     private void autoluma$nightVisionUniform(CallbackInfoReturnable<Float> info) {
+        AutoLumaClient.markVitrailUniformRead();
         float boost = AutoLumaClient.nightVisionStrength();
         if (boost > 0.0f) {
             info.setReturnValue(Math.max(info.getReturnValueF(), boost));
@@ -37,6 +38,7 @@ public abstract class VitrailFrameStateMixin {
     @Inject(method = "screenBrightness()F", at = @At("RETURN"),
             cancellable = true, remap = false, require = 0)
     private void autoluma$brightnessUniform(CallbackInfoReturnable<Float> info) {
+        AutoLumaClient.markVitrailUniformRead();
         float vanilla = info.getReturnValueF();
         float adjusted = AutoLumaClient.shaderScreenBrightness(vanilla);
         if (adjusted > vanilla) info.setReturnValue(adjusted);

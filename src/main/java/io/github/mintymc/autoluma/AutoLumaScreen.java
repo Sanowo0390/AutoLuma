@@ -103,6 +103,12 @@ public final class AutoLumaScreen extends Screen {
             Math.round(AutoLumaClient.intensity() * 100.0f),
             AutoLumaClient.shaderProvider()),
             width / 2, controlsY + 170, 0xFFC0C0C0);
+
+        if (height >= 290) {
+            graphics.centeredText(font, Component.translatable("autoluma.uniform_reads",
+                AutoLumaClient.irisUniformReads(),
+                AutoLumaClient.vitrailUniformReads()), width / 2, controlsY + 182, 0xFF999999);
+        }
     }
 
     @Override

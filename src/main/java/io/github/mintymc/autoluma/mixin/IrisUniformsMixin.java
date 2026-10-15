@@ -30,6 +30,7 @@ public abstract class IrisUniformsMixin {
     @Inject(method = "getNightVision()F", at = @At("RETURN"),
             cancellable = true, remap = false, require = 0)
     private static void autoluma$nightVisionUniform(CallbackInfoReturnable<Float> info) {
+        AutoLumaClient.markIrisUniformRead();
         float boost = AutoLumaClient.nightVisionStrength();
         if (boost > 0.0f) info.setReturnValue(Math.max(info.getReturnValueF(), boost));
     }
@@ -39,6 +40,9 @@ public abstract class IrisUniformsMixin {
             ordinal = 0, remap = false),
             index = 2, remap = false, require = 0)
     private static DoubleSupplier autoluma$screenBrightnessUniform(DoubleSupplier original) {
-        return () -> AutoLumaClient.shaderScreenBrightness((float) original.getAsDouble());
+        return () -> {
+            AutoLumaClient.markIrisUniformRead();
+            return AutoLumaClient.shaderScreenBrightness((float) original.getAsDouble());
+        };
     }
 }

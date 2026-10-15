@@ -16,5 +16,6 @@
   "autoluma.diagnostic": "光量 %s | ブロック %s | 天空 %s | 減衰 %s",
   "autoluma.diagnostic_strength": "補正 %s%% | 描画 %s",
   "autoluma.done": "保存して戻る",
-  "autoluma.mode.post_effect_blocked": "暗視補正"
+  "autoluma.mode.post_effect_blocked": "暗視補正",
+  "autoluma.uniform_reads": "値の読み取り: Iris %s / Vitrail %s"
 }
