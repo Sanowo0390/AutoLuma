@@ -70,6 +70,24 @@ class AutoLumaLightTest {
     }
 
     @Test
+    void missingRealNightVisionDoesNotCallVanillaImplementation() {
+        // Regression: Minecraft 26.3 GameRenderer.nightVisionScale throws an
+        // NPE on missing MobEffectInstance; the supplier MUST remain untouched.
+        assertEquals(0.7f, AutoLumaLight.resolveNightVisionStrength(
+            false, 0.7f, () -> { throw new NullPointerException("nightVision"); }));
+        assertEquals(0.0f, AutoLumaLight.resolveNightVisionStrength(
+            false, 0.0f, () -> { throw new NullPointerException("nightVision"); }));
+    }
+
+    @Test
+    void realNightVisionStillRespectsVanillaStrength() {
+        assertEquals(0.9f, AutoLumaLight.resolveNightVisionStrength(
+            true, 0.5f, () -> 0.9), 0.00001f);
+        assertEquals(0.8f, AutoLumaLight.resolveNightVisionStrength(
+            true, 0.8f, () -> 0.4), 0.00001f);
+    }
+
+    @Test
     void fallbackModesHaveSaneStrengths() {
         assertEquals(0.0f, AutoLumaLight.gammaBonus(0.0f));
         assertEquals(15.0f, AutoLumaLight.gammaBonus(1.0f));

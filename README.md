@@ -6,7 +6,22 @@
 
 暗い場所に入ると徐々に画面を明るくし、明るい場所に戻ると元の明るさに復帰するFabricクライアントMod。
 
-> **Status:** Experimental v1.1.0. Build tests and GLSL validation run on GitHub Actions. Visual results, shader-pack compatibility, and game startup have not been manually verified. This is **not a stable release**.
+> **Status:** Experimental v1.1.1. Build tests and GLSL validation run on GitHub Actions. Visual results, shader-pack compatibility, and game startup have not been manually verified. This is **not a stable release**.
+
+## Crash fix in v1.1.1 / クラッシュ修正
+
+Minecraft 26.3 may call `GameRenderer.nightVisionScale()` even when the
+player has no real Night Vision potion effect, because AutoLuma enables the
+client-side visual night vision branch. Earlier builds (up through v1.1.0)
+called vanilla's implementation unconditionally, causing a
+`NullPointerException: nightVision is null` in dark areas with no potion.
+Version 1.1.1 checks for a real effect instance before delegating to
+vanilla and adds regression tests. A successful build does not by itself
+verify the complete render pipeline in-game.
+
+v1.1.0以前で暗視ポーション効果がない場合に発生したNullPointerExceptionを修正。
+実際のポーション効果がない場合はバニラの暗視強度計算を呼ばず、
+AutoLuma自身の補正値を返します。既存のバニラ暗視効果も保持します。
 
 ## Features / 機能
 
@@ -82,7 +97,7 @@ Requires JDK 25 and Gradle 9.7.1:
 gradle clean build
 ```
 
-On Windows, run `./build.ps1` in PowerShell. This fetches official Gradle and validates its SHA-256. The result is `build/libs/autoluma-1.1.0.jar`.
+On Windows, run `./build.ps1` in PowerShell. This fetches official Gradle and validates its SHA-256. The result is `build/libs/autoluma-1.1.1.jar`.
 
 The GitHub Actions workflow additionally validates the fragment shader with `glslangValidator` and executes unit tests, including checks of the twelve screen-effect definitions. No release is automatically published.
 

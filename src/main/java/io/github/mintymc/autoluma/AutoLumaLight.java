@@ -1,5 +1,7 @@
 package io.github.mintymc.autoluma;
 
+import java.util.function.DoubleSupplier;
+
 /** Pure lighting, smoothing and quantization helpers; covered by unit tests. */
 public final class AutoLumaLight {
     private AutoLumaLight() {}
@@ -38,6 +40,21 @@ public final class AutoLumaLight {
 
     public static float nightVisionStrength(float intensity) {
         return clamp01(intensity);
+    }
+
+    /**
+     * Vanilla's nightVisionScale requires a non-null MobEffectInstance.
+     * The lightmap may invoke it even without that instance because AutoLuma
+     * enables its visual branch. Never call original in that situation.
+     */
+    public static float resolveNightVisionStrength(boolean hasRealNightVision,
+                                                    float localStrength,
+                                                    DoubleSupplier originalStrength) {
+        float local = nightVisionStrength(localStrength);
+        if (!hasRealNightVision) {
+            return local;
+        }
+        return Math.max(local, (float) originalStrength.getAsDouble());
     }
 
     private static float clamp01(float value) {
