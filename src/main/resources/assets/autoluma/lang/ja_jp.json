@@ -9,6 +9,9 @@
   "autoluma.threshold": "暗所判定: 光レベル%s以下",
   "autoluma.speed": "移行のなめらかさ: %s tick",
   "autoluma.diagnostic": "現在の光: %s / ブロック: %s / 空: %s / 空の減衰: %s",
-  "autoluma.diagnostic_boost": "現在の補正: +%s%% / 暗所判定: %s",
-  "autoluma.done": "保存して戻る"
+  "autoluma.diagnostic_boost": "ガンマ目標: +%s%% / 暗視: %s%% / 暗所: %s",
+  "autoluma.done": "保存して戻る",
+  "autoluma.render_mode": "描画方式: %s",
+  "autoluma.mode_gamma": "ガンマ補正（通常）",
+  "autoluma.mode_nightvision": "暗視補正（シェーダー向け）"
 }

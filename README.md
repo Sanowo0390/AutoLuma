@@ -15,6 +15,14 @@ Automatically brighten dark places in **Minecraft Java Edition 26.3 (Fabric)**, 
 - Separate block/sky-light sampling with night-time correction (default threshold: **11**).
 - A live readout of nearby light and gamma, plus an **Always apply (test mode)** toggle to distinguish detection issues from rendering/shader issues.
 
+### Shader compatibility / シェーダー互換モード（実験的）
+
+Rendering mode in Mod Menu can now be switched between:
+- **Gamma (vanilla) / ガンマ補正（通常）:** uses vanilla lightmap gamma; can be ignored by shader packs.
+- **Night vision (shader test) / 暗視補正（シェーダー向け）:** emulates local night-vision lightmap strength without applying a status effect. Use this if gamma does not visually change your scene with Iris. This affects colors differently from gamma and is **not guaranteed to work with every shader**.
+
+The 0–1500% slider maps to 0–100% night-vision strength in this mode; it is not a linear luminance percentage. If another mod manages night vision, it can interact with this rendering mode. ScalableLux updates world lighting and is not known to modify the same lightmap rendering branch.
+
 ## Checking if AutoLuma works / 動作確認
 
 Open Mod Menu → AutoLuma → Configure. Read the **Light / Block / Sky / Sky darken** diagnostic values and **Applied bonus** (the previous tick's values are shown while the single-player game is paused in menus).
@@ -22,7 +30,7 @@ Open Mod Menu → AutoLuma → Configure. Read the **Light / Block / Sky / Sky d
 - In full daylight, effective light should be around 15 and the bonus normally drops to zero.
 - In a cave or outdoors at night, effective light should fall below the chosen threshold (default 11), causing a smooth gamma boost.
 - If **Always apply (test mode)** brightens the screen but auto mode does not, raise the darkness threshold.
-- If **Always apply** reports a positive bonus but there is no visual change, test without Iris shaders or other lightmap/fullbright mods. Custom shaders may bypass vanilla lightmap gamma.
+- If **Always apply** reports a positive bonus but there is no visual change, first switch to **Night vision (shader test)**. If it also has no effect, temporarily disable Iris shaders, and compare with and without ScalableLux.
 - Disable test mode to resume automatic behavior.
 
 Existing `config/autoluma.json` files retain the previous darkness threshold (7 by default in v1.0.0). To use the new default of 11, move the slider or remove the old config file while the game is closed.
@@ -58,13 +66,13 @@ Requires **JDK 25**. On Windows, run `./build.ps1` in PowerShell; it downloads o
 gradle build
 ```
 
-Result: `build/libs/autoluma-1.0.1.jar`. GitHub Actions also compiles the project and uploads build artifacts for each push and pull request.
+Result: `build/libs/autoluma-1.0.2.jar`. GitHub Actions also compiles the project and uploads build artifacts for each push and pull request.
 
 **Verification status:** API references have been reviewed for Minecraft 26.3. Runtime behavior and third-party shader compatibility have **not yet been verified in-game**. Do not treat an untested build as a stable release.
 
 ## Compatibility / 互換性
 
-This mod only changes the client-side extracted **lightmap gamma**. It does not alter server-side lighting, block light, night vision, or the user's saved vanilla brightness slider. Other mods that patch the same lightmap pipeline can conflict. Please respect multiplayer server rules.
+This mod only changes the client-side extracted **lightmap gamma or optional night-vision lightmap strength**. It does not alter server-side lighting, block light, real potion effects, or the user's saved vanilla brightness slider. Other mods that patch the same lightmap pipeline can conflict. Please respect multiplayer server rules.
 
 Minecraft、Fabric、Mod Menuはそれぞれの権利者に帰属します。AutoLumaは非公式のModです。
 

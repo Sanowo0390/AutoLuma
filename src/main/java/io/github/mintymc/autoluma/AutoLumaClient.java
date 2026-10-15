@@ -33,6 +33,19 @@ public final class AutoLumaClient implements ClientModInitializer {
         return currentBonus;
     }
 
+    /** Enable vanilla-gamma fallback or a night-vision-style lightmap path. */
+    public static boolean useNightVision() {
+        return config != null && config.useNightVision && config.enabled;
+    }
+
+    /**
+     * Extra night-vision strength, from 0 to 1.
+     * Preserve existing vanilla night vision when the mod is inactive.
+     */
+    public static float nightVisionStrength() {
+        return useNightVision() ? AutoLumaLight.nightVisionStrength(currentBonus) : 0.0f;
+    }
+
     public static int sampledLight() {
         return sampledLight;
     }

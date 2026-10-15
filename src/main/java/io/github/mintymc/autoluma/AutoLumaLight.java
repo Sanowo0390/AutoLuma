@@ -22,6 +22,14 @@ public final class AutoLumaLight {
         return effectiveLight <= enter;
     }
 
+    /**
+     * Night-vision intensity is linear across the existing 0..1500% slider.
+     * This is NOT a photometric mapping between gamma and night vision.
+     */
+    public static float nightVisionStrength(float bonusGamma) {
+        return Math.max(0.0f, Math.min(1.0f, bonusGamma / 15.0f));
+    }
+
     private static int clamp(int value, int min, int max) {
         return Math.max(min, Math.min(max, value));
     }

@@ -3,7 +3,10 @@
   "minVersion": "0.8",
   "package": "io.github.mintymc.autoluma.mixin",
   "compatibilityLevel": "JAVA_25",
-  "client": ["LightmapExtractorMixin"],
+  "client": [
+    "LightmapExtractorMixin",
+    "GameRendererNightVisionMixin"
+  ],
   "injectors": {
     "defaultRequire": 1
   }

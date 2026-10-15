@@ -27,5 +27,5 @@ try {
     }
     & $bat --no-daemon build
     if ($LASTEXITCODE -ne 0) { throw "Gradle build failed: $LASTEXITCODE" }
-    Write-Host 'Build complete: build\libs\autoluma-1.0.1.jar'
+    Write-Host 'Build complete: build\libs\autoluma-1.0.2.jar'
 } finally { Pop-Location }

@@ -15,6 +15,7 @@ public final class AutoLumaConfig {
     private static final Path FILE = FabricLoader.getInstance().getConfigDir().resolve("autoluma.json");
 
     public boolean enabled = true;
+    public boolean useNightVision = false; // optional shader-compatibility experiment
     public boolean forceBoost = false; // diagnostic fallback for renderer/shader checks
     public int boostPercent = 500;
     public int darkThreshold = 11;

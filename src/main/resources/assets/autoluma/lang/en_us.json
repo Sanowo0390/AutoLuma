@@ -9,6 +9,9 @@
   "autoluma.threshold": "Darkness threshold: light level %s or less",
   "autoluma.speed": "Transition smoothing: %s ticks",
   "autoluma.diagnostic": "Light: %s / Block: %s / Sky: %s / Sky darken: %s",
-  "autoluma.diagnostic_boost": "Applied bonus: +%s%% / Dark detected: %s",
-  "autoluma.done": "Save and return"
+  "autoluma.diagnostic_boost": "Target gamma: +%s%% / Night vision: %s%% / Dark: %s",
+  "autoluma.done": "Save and return",
+  "autoluma.render_mode": "Rendering: %s",
+  "autoluma.mode_gamma": "Gamma (vanilla)",
+  "autoluma.mode_nightvision": "Night vision (shader test)"
 }

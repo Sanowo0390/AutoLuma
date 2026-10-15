@@ -15,6 +15,7 @@ public final class AutoLumaScreen extends Screen {
     private final AutoLumaConfig cfg = AutoLumaClient.config();
     private Button enabledButton;
     private Button forceButton;
+    private Button renderModeButton;
     private int startY;
 
     public AutoLumaScreen(Screen parent) {
@@ -26,7 +27,7 @@ public final class AutoLumaScreen extends Screen {
     protected void init() {
         int w = Math.min(310, Math.max(180, this.width - 24));
         int x = (this.width - w) / 2;
-        startY = Math.max(49, (this.height - 245) / 2 + 50);
+        startY = Math.max(44, (this.height - 220) / 2 + 43);
 
         enabledButton = addRenderableWidget(Button.builder(enabledText(), button -> {
             cfg.enabled = !cfg.enabled;
@@ -36,27 +37,37 @@ public final class AutoLumaScreen extends Screen {
         forceButton = addRenderableWidget(Button.builder(forceText(), button -> {
             cfg.forceBoost = !cfg.forceBoost;
             forceButton.setMessage(forceText());
-        }).bounds(x, startY + 25, w, 20).build());
+        }).bounds(x, startY + 23, w, 20).build());
 
-        addRenderableWidget(new RangeSlider(x, startY + 54, w, cfg.boostPercent,
+        renderModeButton = addRenderableWidget(Button.builder(renderModeText(), button -> {
+            cfg.useNightVision = !cfg.useNightVision;
+            renderModeButton.setMessage(renderModeText());
+        }).bounds(x, startY + 46, w, 20).build());
+
+        addRenderableWidget(new RangeSlider(x, startY + 71, w, cfg.boostPercent,
             0, 1500, 25, val -> cfg.boostPercent = val,
             val -> Component.translatable("autoluma.boost", val)));
 
-        addRenderableWidget(new RangeSlider(x, startY + 81, w, cfg.darkThreshold,
+        addRenderableWidget(new RangeSlider(x, startY + 95, w, cfg.darkThreshold,
             0, 14, 1, val -> cfg.darkThreshold = val,
             val -> Component.translatable("autoluma.threshold", val)));
 
-        addRenderableWidget(new RangeSlider(x, startY + 108, w, cfg.transitionTicks,
+        addRenderableWidget(new RangeSlider(x, startY + 119, w, cfg.transitionTicks,
             1, 60, 1, val -> cfg.transitionTicks = val,
             val -> Component.translatable("autoluma.speed", val)));
 
         addRenderableWidget(Button.builder(Component.translatable("autoluma.done"), button -> onClose())
-            .bounds(x, Math.min(startY + 176, height - 24), w, 20).build());
+            .bounds(x, Math.min(startY + 178, height - 24), w, 20).build());
     }
 
     private Component enabledText() {
         return Component.translatable("autoluma.enabled",
             Component.translatable(cfg.enabled ? "autoluma.on" : "autoluma.off"));
+    }
+
+    private Component renderModeText() {
+        return Component.translatable("autoluma.render_mode",
+            Component.translatable(cfg.useNightVision ? "autoluma.mode_nightvision" : "autoluma.mode_gamma"));
     }
 
     private Component forceText() {
@@ -73,11 +84,14 @@ public final class AutoLumaScreen extends Screen {
         graphics.centeredText(font, Component.translatable("autoluma.diagnostic",
             AutoLumaClient.sampledLight(), AutoLumaClient.sampledBlock(),
             AutoLumaClient.sampledSky(), AutoLumaClient.sampledSkyDarken()),
-            width / 2, startY + 142, 0xFFB0B0B0);
-        graphics.centeredText(font, Component.translatable("autoluma.diagnostic_boost",
-            Math.round(AutoLumaClient.bonusGamma() * 100.0f),
-            Component.translatable(AutoLumaClient.isDark() ? "autoluma.on" : "autoluma.off")),
-            width / 2, startY + 154, 0xFFB0B0B0);
+            width / 2, startY + 144, 0xFFB0B0B0);
+        if (height >= 260) {
+            graphics.centeredText(font, Component.translatable("autoluma.diagnostic_boost",
+                Math.round(AutoLumaClient.bonusGamma() * 100.0f),
+                Math.round(AutoLumaClient.nightVisionStrength() * 100.0f),
+                Component.translatable(AutoLumaClient.isDark() ? "autoluma.on" : "autoluma.off")),
+                width / 2, startY + 156, 0xFFB0B0B0);
+        }
     }
 
     @Override
