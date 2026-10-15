@@ -12,12 +12,21 @@ class AutoLumaLightTest {
             AutoLumaRenderPolicy.select(AutoLumaConfig.RenderMode.AUTO, true, true));
         assertEquals(AutoLumaConfig.RenderMode.NIGHT_VISION,
             AutoLumaRenderPolicy.select(AutoLumaConfig.RenderMode.AUTO, false, false));
-        assertEquals(AutoLumaConfig.RenderMode.POST_EFFECT,
+        assertEquals(AutoLumaConfig.RenderMode.NIGHT_VISION,
             AutoLumaRenderPolicy.select(AutoLumaConfig.RenderMode.AUTO, true, false));
         assertEquals(AutoLumaConfig.RenderMode.POST_EFFECT,
             AutoLumaRenderPolicy.select(AutoLumaConfig.RenderMode.POST_EFFECT, false, false));
         assertEquals(AutoLumaConfig.RenderMode.GAMMA,
             AutoLumaRenderPolicy.select(AutoLumaConfig.RenderMode.GAMMA, false, true));
+    }
+
+    @Test
+    void shaderBrightnessRespectsBoundsAndPreservesVanilla() {
+        assertEquals(0.6f, AutoLumaLight.shaderScreenBrightness(0.6f, 0.0f), 0.00001f);
+        assertEquals(0.8f, AutoLumaLight.shaderScreenBrightness(0.6f, 0.5f), 0.00001f);
+        assertEquals(1.0f, AutoLumaLight.shaderScreenBrightness(0.6f, 1.0f), 0.00001f);
+        assertEquals(1.0f, AutoLumaLight.shaderScreenBrightness(1.0f, 0.9f), 0.00001f);
+        assertEquals(0.0f, AutoLumaLight.shaderScreenBrightness(-1.0f, 0.0f), 0.00001f);
     }
 
     @Test

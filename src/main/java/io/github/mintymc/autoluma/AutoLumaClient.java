@@ -68,6 +68,20 @@ public final class AutoLumaClient implements ClientModInitializer {
                 ? AutoLumaLight.nightVisionStrength(intensity) : 0.0f;
     }
 
+    /**
+     * Extra support for shader packs using screenBrightness instead of
+     * nightVision. Never alters Minecraft's saved gamma preference.
+     */
+    public static float shaderScreenBrightness(float vanilla) {
+        if (config == null) return vanilla;
+        AutoLumaConfig.RenderMode mode = effectiveMode();
+        if (mode == AutoLumaConfig.RenderMode.NIGHT_VISION
+                || mode == AutoLumaConfig.RenderMode.GAMMA) {
+            return AutoLumaLight.shaderScreenBrightness(vanilla, intensity);
+        }
+        return vanilla;
+    }
+
     public static int postLevel() {
         return effectiveMode() == AutoLumaConfig.RenderMode.POST_EFFECT
                 ? AutoLumaLight.postLevel(intensity) : 0;

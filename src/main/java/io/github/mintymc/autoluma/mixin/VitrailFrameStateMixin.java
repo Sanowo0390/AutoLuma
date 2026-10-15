@@ -30,15 +30,15 @@ public abstract class VitrailFrameStateMixin {
     }
 
     /**
-     * Shader packs that consult screenBrightness can also respond to the
-     * ordinary Gamma mode. Keep its published value inside the [0,1] range.
+     * Shader packs may use screenBrightness instead of nightVision.
+     * Pass the same smooth strength to both uniforms in Auto mode.
+     * This never overwrites the user's saved gamma option.
      */
     @Inject(method = "screenBrightness()F", at = @At("RETURN"),
             cancellable = true, remap = false, require = 0)
     private void autoluma$brightnessUniform(CallbackInfoReturnable<Float> info) {
-        float boost = AutoLumaClient.bonusGamma();
-        if (boost > 0.0f) {
-            info.setReturnValue(Math.min(1.0f, info.getReturnValueF() + boost / 15.0f));
-        }
+        float vanilla = info.getReturnValueF();
+        float adjusted = AutoLumaClient.shaderScreenBrightness(vanilla);
+        if (adjusted > vanilla) info.setReturnValue(adjusted);
     }
 }

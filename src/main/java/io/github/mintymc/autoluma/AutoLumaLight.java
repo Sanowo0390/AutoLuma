@@ -47,6 +47,17 @@ public final class AutoLumaLight {
     }
 
     /**
+     * Blend an OptiFine-format shader's screenBrightness uniform towards
+     * the documented maximum (1.0), without touching options.txt.
+     * This complements the nightVision uniform for shader packs that
+     * respond to one but not the other.
+     */
+    public static float shaderScreenBrightness(float vanillaBrightness, float intensity) {
+        float original = clamp01(vanillaBrightness);
+        return original + (1.0f - original) * clamp01(intensity);
+    }
+
+    /**
      * Vanilla's nightVisionScale requires a non-null MobEffectInstance.
      * The lightmap may invoke it even without that instance because AutoLuma
      * enables its visual branch. Never call original in that situation.
