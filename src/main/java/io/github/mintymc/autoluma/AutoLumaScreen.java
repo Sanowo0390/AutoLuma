@@ -62,7 +62,7 @@ public final class AutoLumaScreen extends Screen {
                 value -> Component.translatable("autoluma.threshold", value)));
 
         addRenderableWidget(new RangeSlider(x, controlsY + 127, width, config.transitionTicks,
-                1, 60, 1, value -> config.transitionTicks = value,
+                1, 100, 1, value -> config.transitionTicks = value,
                 value -> Component.translatable("autoluma.speed", value)));
 
         addRenderableWidget(Button.builder(Component.translatable("autoluma.done"),
@@ -80,10 +80,7 @@ public final class AutoLumaScreen extends Screen {
     }
 
     private Component modeText() {
-        String key = (AutoLumaClient.postEffectsBlocked()
-                && config.renderMode == AutoLumaConfig.RenderMode.POST_EFFECT)
-                ? "autoluma.mode.post_effect_blocked"
-                : "autoluma.mode." + config.renderMode.name().toLowerCase(java.util.Locale.ROOT);
+        String key = "autoluma.mode." + config.renderMode.name().toLowerCase(java.util.Locale.ROOT);
         return Component.translatable("autoluma.render_mode", Component.translatable(key));
     }
 
@@ -103,15 +100,9 @@ public final class AutoLumaScreen extends Screen {
             width / 2, controlsY + 158, 0xFFC0C0C0);
 
         graphics.centeredText(font, Component.translatable("autoluma.diagnostic_strength",
-            Math.round(AutoLumaClient.intensity() * 100.0f), AutoLumaClient.postLevel(),
-            Component.translatable(AutoLumaClient.shadersActive() ? "autoluma.on" : "autoluma.off")),
+            Math.round(AutoLumaClient.intensity() * 100.0f),
+            AutoLumaClient.shaderProvider()),
             width / 2, controlsY + 170, 0xFFC0C0C0);
-
-        if (height >= 290) {
-            graphics.centeredText(font, Component.translatable("autoluma.diagnostic_render",
-                AutoLumaClient.gammaHookCalls(), AutoLumaClient.nightVisionHookCalls(),
-                AutoLumaClient.postRequestCalls()), width / 2, controlsY + 182, 0xFF999999);
-        }
     }
 
     @Override

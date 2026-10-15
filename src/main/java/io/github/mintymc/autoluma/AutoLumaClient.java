@@ -1,7 +1,6 @@
 package io.github.mintymc.autoluma;
 
 import net.fabricmc.api.ClientModInitializer;
-import net.fabricmc.loader.api.FabricLoader;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.minecraft.client.Minecraft;
 import net.minecraft.core.BlockPos;
@@ -9,7 +8,6 @@ import net.minecraft.world.level.LightLayer;
 
 /** Local controller: sunlight detection -> smooth intensity -> render backend. */
 public final class AutoLumaClient implements ClientModInitializer {
-    private static final boolean VITRAIL_LOADED = FabricLoader.getInstance().isModLoaded("vitrail");
     private static AutoLumaConfig config;
     private static float intensity;
     private static int effectiveLight = 15;
@@ -17,6 +15,7 @@ public final class AutoLumaClient implements ClientModInitializer {
     private static int skyLight = 15;
     private static int skyDarken = 0;
     private static boolean irisActive;
+    private static boolean vitrailShaderActive;
     private static volatile int gammaHookCalls;
     private static volatile int nightVisionHookCalls;
     private static volatile int postRequestCalls;
@@ -24,6 +23,12 @@ public final class AutoLumaClient implements ClientModInitializer {
     @Override
     public void onInitializeClient() {
         config = AutoLumaConfig.load();
+        // Prevent a previously saved Vulkan post-effect from being selected
+        // on a renderer which reported native pipeline-creation crashes.
+        if (VitrailCompat.LOADED
+                && config.renderMode == AutoLumaConfig.RenderMode.POST_EFFECT) {
+            config.renderMode = AutoLumaConfig.RenderMode.NIGHT_VISION;
+        }
         ClientTickEvents.END_CLIENT_TICK.register(AutoLumaClient::tick);
     }
 
@@ -33,8 +38,13 @@ public final class AutoLumaClient implements ClientModInitializer {
     public static int sampledBlock() { return blockLight; }
     public static int sampledSky() { return skyLight; }
     public static int sampledSkyDarken() { return skyDarken; }
-    public static boolean shadersActive() { return irisActive; }
-    public static boolean postEffectsBlocked() { return VITRAIL_LOADED; }
+    public static boolean shadersActive() { return irisActive || vitrailShaderActive; }
+    public static boolean postEffectsBlocked() { return VitrailCompat.LOADED; }
+    public static String shaderProvider() {
+        if (VitrailCompat.LOADED) return vitrailShaderActive ? "Vitrail" : "Vitrail (off)";
+        if (irisActive) return "Iris";
+        return "Vanilla";
+    }
     public static boolean isDark() { return effectiveLight <= config.darkThreshold; }
     public static int gammaHookCalls() { return gammaHookCalls; }
     public static int nightVisionHookCalls() { return nightVisionHookCalls; }
@@ -45,7 +55,7 @@ public final class AutoLumaClient implements ClientModInitializer {
 
     public static AutoLumaConfig.RenderMode effectiveMode() {
         if (config == null) return AutoLumaConfig.RenderMode.NIGHT_VISION;
-        return AutoLumaRenderPolicy.select(config.renderMode, irisActive, VITRAIL_LOADED);
+        return AutoLumaRenderPolicy.select(config.renderMode, irisActive, VitrailCompat.LOADED);
     }
 
     public static float bonusGamma() {
@@ -83,6 +93,7 @@ public final class AutoLumaClient implements ClientModInitializer {
             skyLight = 15;
             skyDarken = 0;
             irisActive = false;
+            vitrailShaderActive = false;
             return;
         }
         sampleLight(client);
@@ -100,6 +111,7 @@ public final class AutoLumaClient implements ClientModInitializer {
         skyDarken = client.level.getSkyDarken();
         effectiveLight = AutoLumaLight.effectiveLight(blockLight, skyLight, skyDarken);
         irisActive = IrisCompat.isActive();
+        vitrailShaderActive = VitrailCompat.shaderPackActive();
     }
 
     private static float targetIntensity() {

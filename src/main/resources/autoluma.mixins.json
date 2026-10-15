@@ -6,7 +6,8 @@
   "client": [
     "LightmapExtractorMixin",
     "GameRendererNightVisionMixin",
-    "LocalPlayerPostEffectsMixin"
+    "LocalPlayerPostEffectsMixin",
+    "VitrailFrameStateMixin"
   ],
   "injectors": {
     "defaultRequire": 1

@@ -21,6 +21,18 @@ class AutoLumaLightTest {
     }
 
     @Test
+    void transitionTicksAccept100() {
+        var config = new AutoLumaConfig();
+        config.transitionTicks = 100;
+        config.clamp();
+        assertEquals(100, config.transitionTicks);
+        config.transitionTicks = 101;
+        config.clamp();
+        assertEquals(100, config.transitionTicks);
+        assertEquals(0.01f, AutoLumaLight.smooth(0.0f, 1.0f, 100), 0.00001f);
+    }
+
+    @Test
     void fullDaylightNoAdjustment() {
         assertEquals(15, AutoLumaLight.effectiveLight(0, 15, 0));
         assertEquals(0.0f, AutoLumaLight.darknessStrength(15, 11));
