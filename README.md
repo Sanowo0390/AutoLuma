@@ -5,6 +5,7 @@
 **Minecraft Java Edition 26.3 / Fabric — 自動明るさ補正Mod**
 
 暗所で補正強度をなめらかに上げ、明るい場所に戻ると自然に下げます。サーバーの照明、ポーション効果、Minecraftの保存済みガンマ設定は変更しません。
+### ⚠️このプラグインはAIのみで作られました⚠️
 
 > **v1.1.4（試験版）** — Javaコンパイル・単体テスト・GLSL構文検証はGitHub Actionsで実行します。Minecraft実機でのVitrail/Iris/Complementaryとの互換性は未検証です。
 
