@@ -7,7 +7,7 @@
 暗所で補正強度をなめらかに上げ、明るい場所に戻ると自然に下げます。サーバーの照明、ポーション効果、Minecraftの保存済みガンマ設定は変更しません。
 ### ⚠️このプラグインはAIのみで作られました⚠️
 
-> **v1.1.4（試験版）** — Javaコンパイル・単体テスト・GLSL構文検証はGitHub Actionsで実行します。Minecraft実機でのVitrail/Iris/Complementaryとの互換性は未検証です。
+> **v1.1.5（試験版）** — Javaコンパイル・単体テスト・GLSL構文検証はGitHub Actionsで実行します。Minecraft実機でのVitrail/Iris/Complementaryとの互換性は未検証です。
 
 ## 動作方式
 
@@ -25,6 +25,29 @@
 **Vitrail 0.13.0-beta：** Vitrailの独自`FrameState.nightVision()`および`screenBrightness()`を補正します。Vulkanパイプライン生成中のネイティブクラッシュが報告されているため、Vitrailでの全画面ポストエフェクトを無効化しています。
 
 **重要：** いずれの方法もシェーダーパックが該当Uniformを使うことが前提です。Complementaryなどが期待した明るさになるとは限りません。完全な互換性やFullbright効果は保証していません。Iris/Vitrailを使用せずに動作する方式と、シェーダーの照明アルゴリズムには差があります。
+
+## BadOptimizationsとの互換性（v1.1.5）
+
+BadOptimizations 26.3が公開している `badoptimizations:cache_hooks` を使い、
+AutoLuma専用のライトマップ更新フックを自動登録します。
+AutoLumaの実際のガンマ補正値・暗視補正値が変化したとき、または
+ワールドが切り替わったときだけ、BadOptimizationsにライトマップ再計算を要求します。
+補正値が一定なら従来どおりキャッシュされます。
+
+**BadOptimizationsの推奨設定：**
+
+```yaml
+enable_lightmap_caching: true
+ignore_mod_incompatibilities: false
+ignore_mod_cache_hooks: false
+```
+
+設定の変更とMod更新後はMinecraftを再起動してください。
+BadOptimizationsが未インストールでもAutoLumaは動作し、
+BadOptimizationsを必須依存としていません。
+この対応が解決するのはライトマップ更新の省略に起因する遅延です。
+Iris/Vitrail/Complementary Shadersの最終的な画面補正の可否は
+別の描画経路にも左右され、実機では未検証です。
 
 ## 設定
 

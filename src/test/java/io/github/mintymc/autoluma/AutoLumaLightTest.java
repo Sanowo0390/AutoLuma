@@ -121,6 +121,46 @@ class AutoLumaLightTest {
     }
 
     @Test
+    void badOptimizationsHookAvoidsUnnecessaryLightmapUpdates() {
+        var tracker = new io.github.mintymc.autoluma.compat.LightmapCacheChangeTracker();
+        Object world = new Object();
+
+        // Initial world load, then stable values: only one update.
+        assertTrue(tracker.shouldUpdate(world, 0.0f, 0.0f));
+        assertFalse(tracker.shouldUpdate(world, 0.0f, 0.0f));
+        assertFalse(tracker.shouldUpdate(world, 0.0f, 0.0f));
+
+        // Fade-in and fade-out must both invalidate the cached lightmap.
+        assertTrue(tracker.shouldUpdate(world, 0.0f, 0.25f));
+        assertTrue(tracker.shouldUpdate(world, 0.0f, 0.5f));
+        assertFalse(tracker.shouldUpdate(world, 0.0f, 0.5f));
+        assertTrue(tracker.shouldUpdate(world, 0.0f, 0.0f));
+        assertFalse(tracker.shouldUpdate(world, 0.0f, 0.0f));
+
+        // Switching from night-vision to gamma changes the computed lightmap.
+        assertTrue(tracker.shouldUpdate(world, 6.0f, 0.0f));
+        assertFalse(tracker.shouldUpdate(world, 6.0f, 0.0f));
+        assertTrue(tracker.shouldUpdate(world, 7.0f, 0.0f));
+        assertTrue(tracker.shouldUpdate(world, 0.0f, 0.0f));
+    }
+
+    @Test
+    void badOptimizationsHookResetsWhenWorldIsReplacedOrUnloaded() {
+        var tracker = new io.github.mintymc.autoluma.compat.LightmapCacheChangeTracker();
+        Object overworld = new Object();
+        Object anotherWorld = new Object();
+
+        assertTrue(tracker.shouldUpdate(overworld, 0.0f, 0.7f));
+        assertFalse(tracker.shouldUpdate(overworld, 0.0f, 0.7f));
+        assertTrue(tracker.shouldUpdate(anotherWorld, 0.0f, 0.7f));
+        assertFalse(tracker.shouldUpdate(anotherWorld, 0.0f, 0.7f));
+
+        assertFalse(tracker.shouldUpdate(null, 0.0f, 0.0f));
+        assertTrue(tracker.shouldUpdate(anotherWorld, 0.0f, 0.7f));
+        assertFalse(tracker.shouldUpdate(anotherWorld, 0.0f, 0.7f));
+    }
+
+    @Test
     void fallbackModesHaveSaneStrengths() {
         assertEquals(0.0f, AutoLumaLight.gammaBonus(0.0f));
         assertEquals(15.0f, AutoLumaLight.gammaBonus(1.0f));
